@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Header from "@/components/Header";
+import AppShell, { CanvasSection, CanvasEmptyState, AIActivityBar } from "@/components/AppShell";
+import InspectorPanel, { InspectorField, InspectorValue } from "@/components/InspectorPanel";
 import ImageUploader from "@/components/ImageUploader";
 import ProductVariations from "@/components/ProductVariations";
 import CombinedVariationBuilder from "@/components/CombinedVariationBuilder";
@@ -90,36 +91,106 @@ export default function ProductsPage() {
     }
   }, [productData]);
 
-  return (
-    <div className="min-h-screen">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-zinc-100">Product Variations</h2>
-              <p className="text-sm text-zinc-500">Generate color, material, and background variations for e-commerce</p>
-            </div>
-          </div>
+  // Build inspector sections
+  const inspectorSections = productData ? [
+    {
+      id: "product",
+      title: "Product Details",
+      defaultOpen: true,
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Product Name">
+            <InspectorValue value={productData.product.name} />
+          </InspectorField>
+          <InspectorField label="Category">
+            <InspectorValue value={productData.product.category} />
+          </InspectorField>
+          <InspectorField label="Current Color">
+            <InspectorValue value={productData.product.current_color} />
+          </InspectorField>
+          <InspectorField label="Current Material">
+            <InspectorValue value={productData.product.current_material} />
+          </InspectorField>
         </div>
+      ),
+    },
+    {
+      id: "photography",
+      title: "Photography",
+      defaultOpen: true,
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Background">
+            <InspectorValue value={productData.photography.background_type} />
+          </InspectorField>
+          <InspectorField label="Lighting">
+            <InspectorValue value={productData.photography.lighting_style} />
+          </InspectorField>
+          <InspectorField label="Angle">
+            <InspectorValue value={productData.photography.angle} />
+          </InspectorField>
+          <InspectorField label="Shadows">
+            <InspectorValue value={productData.photography.shadows} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "base-prompt",
+      title: "Base Prompt",
+      children: (
+        <div className="space-y-2">
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+            {productData.base_prompt}
+          </p>
+          <button
+            onClick={() => navigator.clipboard.writeText(productData.base_prompt)}
+            className="btn-ghost text-xs w-full justify-center"
+          >
+            Copy Base Prompt
+          </button>
+        </div>
+      ),
+    },
+  ] : [];
 
+  const aiStatus = analysisStatus === "analyzing" 
+    ? "processing" 
+    : error 
+      ? "error" 
+      : analysisStatus === "complete" 
+        ? "complete" 
+        : "idle";
+
+  return (
+    <AppShell
+      inspector={
+        productData ? (
+          <InspectorPanel
+            title="Product Inspector"
+            subtitle="Analysis details"
+            sections={inspectorSections}
+          />
+        ) : undefined
+      }
+    >
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3 animate-fade-in">
+          <div className="
+            p-4 rounded-xl 
+            bg-error-soft border border-[var(--error)]/20 
+            text-[var(--error)] 
+            flex items-center gap-3 
+            animate-fade-in
+          ">
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm">{error}</span>
             <button 
               onClick={() => setError(null)}
-              className="ml-auto text-red-400/60 hover:text-red-400"
+              className="ml-auto text-[var(--error)]/60 hover:text-[var(--error)] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -128,75 +199,37 @@ export default function ProductsPage() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Left Column - Image Upload */}
           <div className="space-y-6">
-            <div className="panel rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Product Image
-              </h3>
+            <CanvasSection 
+              title="Product Image"
+              subtitle="Upload a product photo to analyze"
+            >
               <ImageUploader
                 onImageSelect={handleImageSelect}
                 currentImage={image}
                 isAnalyzing={analysisStatus === "analyzing"}
               />
-            </div>
+            </CanvasSection>
 
-            {/* Base Prompt */}
+            {/* Quick Stats Cards */}
             {productData && (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Base Prompt
-                </h3>
-                <div className="rounded-xl bg-zinc-800/50 p-4">
-                  <p className="text-sm text-zinc-400 leading-relaxed">
-                    {productData.base_prompt}
-                  </p>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(productData.base_prompt)}
-                    className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 transition-colors text-xs text-zinc-300"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy Base Prompt
-                  </button>
+              <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                <div className="panel-elevated p-4">
+                  <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                    Suggested Colors
+                  </div>
+                  <div className="text-lg font-semibold text-[var(--text-primary)]">
+                    {productData.suggested_variations.colors.length}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Photography Details */}
-            {productData && (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Photography Details
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-zinc-500 uppercase tracking-wider">Background</span>
-                    <p className="text-sm text-zinc-300 mt-1">{productData.photography.background_type}</p>
+                <div className="panel-elevated p-4">
+                  <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                    Materials
                   </div>
-                  <div>
-                    <span className="text-xs text-zinc-500 uppercase tracking-wider">Lighting</span>
-                    <p className="text-sm text-zinc-300 mt-1">{productData.photography.lighting_style}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-zinc-500 uppercase tracking-wider">Angle</span>
-                    <p className="text-sm text-zinc-300 mt-1">{productData.photography.angle}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-zinc-500 uppercase tracking-wider">Shadows</span>
-                    <p className="text-sm text-zinc-300 mt-1">{productData.photography.shadows}</p>
+                  <div className="text-lg font-semibold text-[var(--text-primary)]">
+                    {productData.suggested_variations.materials.length}
                   </div>
                 </div>
               </div>
@@ -206,40 +239,39 @@ export default function ProductsPage() {
           {/* Right Column - Variations */}
           <div className="space-y-6">
             {productData ? (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                {/* Mode Toggle */}
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                    </svg>
-                    Generate Variations
-                  </h3>
-                  <div className="flex gap-1 p-1 rounded-xl bg-zinc-900/80 border border-zinc-800">
+              <CanvasSection
+                title="Generate Variations"
+                actions={
+                  <div className="flex gap-1 p-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--glass-border)]">
                     <button
                       onClick={() => setVariationMode("combined")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        variationMode === "combined"
-                          ? "bg-purple-500/20 text-purple-400"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
+                      className={`
+                        px-3 py-1.5 rounded-md text-xs font-medium 
+                        transition-all duration-[var(--motion-fast)]
+                        ${variationMode === "combined"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-primary)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        }
+                      `}
                     >
-                      🎯 Combined
+                      Combined
                     </button>
                     <button
                       onClick={() => setVariationMode("single")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        variationMode === "single"
-                          ? "bg-purple-500/20 text-purple-400"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
+                      className={`
+                        px-3 py-1.5 rounded-md text-xs font-medium 
+                        transition-all duration-[var(--motion-fast)]
+                        ${variationMode === "single"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-primary)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        }
+                      `}
                     >
-                      📝 Single
+                      Single
                     </button>
                   </div>
-                </div>
-
-                {/* Mode Content */}
+                }
+              >
                 {variationMode === "combined" ? (
                   <CombinedVariationBuilder
                     productData={productData}
@@ -251,34 +283,36 @@ export default function ProductsPage() {
                     onGenerateVariation={handleGenerateVariation}
                   />
                 )}
-              </div>
+              </CanvasSection>
             ) : (
-              <div className="panel rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[500px]">
-                <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <CanvasEmptyState
+                icon={
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                   </svg>
-                </div>
-                <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready for Products</h3>
-                <p className="text-sm text-zinc-500 max-w-xs">
-                  Upload a product photo to analyze and generate color, material, and background variations
-                </p>
-              </div>
+                }
+                title="Ready for Products"
+                description="Upload a product photo to generate color, material, and background variations"
+              />
             )}
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/50 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between text-xs text-zinc-600">
-            <p>Reframe © 2024 • Visual Intelligence Platform</p>
-            <p>Powered by Google Gemini</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {/* AI Activity Bar */}
+      <AIActivityBar 
+        status={aiStatus}
+        message={
+          error 
+            ? error 
+            : analysisStatus === "analyzing" 
+              ? "Analyzing product..." 
+              : analysisStatus === "complete" 
+                ? "Product analyzed" 
+                : undefined
+        }
+        onDismiss={error ? () => setError(null) : undefined}
+      />
+    </AppShell>
   );
 }
-

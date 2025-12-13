@@ -7,7 +7,7 @@ interface SceneEditorProps {
   onChange: (data: VisionStructOutput) => void;
 }
 
-// Reusable select component
+// Reusable select component with new tokens
 function Select({ 
   label, 
   value, 
@@ -21,11 +21,20 @@ function Select({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs text-zinc-500 uppercase tracking-wider">{label}</label>
+      <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider font-medium">
+        {label}
+      </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+        className="
+          bg-[var(--bg-elevated)] border border-[var(--glass-border)] 
+          rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]
+          focus:outline-none focus:border-[var(--accent-primary)] 
+          focus:ring-2 focus:ring-[var(--accent-soft)]
+          transition-all duration-[var(--motion-fast)]
+          cursor-pointer
+        "
       >
         {options.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
@@ -35,7 +44,7 @@ function Select({
   );
 }
 
-// Reusable text input
+// Reusable text input with new tokens
 function TextInput({ 
   label, 
   value, 
@@ -47,11 +56,20 @@ function TextInput({
   onChange: (value: string) => void;
   multiline?: boolean;
 }) {
-  const baseClass = "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors";
+  const baseClass = `
+    w-full bg-[var(--bg-elevated)] border border-[var(--glass-border)] 
+    rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]
+    placeholder:text-[var(--text-muted)]
+    focus:outline-none focus:border-[var(--accent-primary)] 
+    focus:ring-2 focus:ring-[var(--accent-soft)]
+    transition-all duration-[var(--motion-fast)]
+  `;
   
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs text-zinc-500 uppercase tracking-wider">{label}</label>
+      <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider font-medium">
+        {label}
+      </label>
       {multiline ? (
         <textarea
           value={value}
@@ -83,31 +101,44 @@ function ColorInput({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs text-zinc-500 uppercase tracking-wider">{label}</label>
+      <label className="text-xs text-[var(--text-muted)] uppercase tracking-wider font-medium">
+        {label}
+      </label>
       <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"
-        />
+        <div className="relative">
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent opacity-0 absolute inset-0"
+          />
+          <div 
+            className="w-10 h-10 rounded-lg border border-[var(--glass-border)] shadow-sm"
+            style={{ backgroundColor: value }}
+          />
+        </div>
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-amber-500/50"
+          className="
+            flex-1 bg-[var(--bg-elevated)] border border-[var(--glass-border)] 
+            rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] font-mono
+            focus:outline-none focus:border-[var(--accent-primary)]
+            transition-all duration-[var(--motion-fast)]
+          "
         />
       </div>
     </div>
   );
 }
 
-// Section wrapper
+// Section wrapper with new styling
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+      <h3 className="text-sm font-semibold text-[var(--accent-primary)] flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
         {title}
       </h3>
       <div className="grid gap-4">
@@ -284,11 +315,18 @@ export default function SceneEditor({ data, onChange }: SceneEditorProps) {
           {data.objects.map((obj) => (
             <div 
               key={obj.id} 
-              className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50 space-y-4"
+              className="
+                p-4 rounded-xl 
+                bg-[var(--bg-surface)] 
+                border border-[var(--glass-border)] 
+                space-y-4
+                transition-all duration-[var(--motion-fast)]
+                hover:border-[var(--accent-soft)]
+              "
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-zinc-200">{obj.label}</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-zinc-700 text-zinc-400">
+                <span className="text-sm font-medium text-[var(--text-primary)]">{obj.label}</span>
+                <span className="text-xs px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">
                   {obj.category}
                 </span>
               </div>
@@ -324,4 +362,3 @@ export default function SceneEditor({ data, onChange }: SceneEditorProps) {
     </div>
   );
 }
-

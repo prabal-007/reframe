@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Header from "@/components/Header";
+import AppShell, { CanvasSection, CanvasEmptyState, AIActivityBar } from "@/components/AppShell";
+import InspectorPanel, { InspectorField, InspectorValue, InspectorChips } from "@/components/InspectorPanel";
 import ImageUploader from "@/components/ImageUploader";
 import JsonViewer from "@/components/JsonViewer";
 import SceneEditor from "@/components/SceneEditor";
@@ -73,26 +74,131 @@ export default function Home() {
 
   const handleSceneDataChange = useCallback((newData: VisionStructOutput) => {
     setSceneData(newData);
-    // Clear generated prompt when data changes so user regenerates
     setGeneratedPrompt(null);
   }, []);
 
-  return (
-    <div className="min-h-screen">
-      <Header />
+  // Build inspector sections based on current state
+  const inspectorSections = sceneData ? [
+    {
+      id: "overview",
+      title: "Scene Overview",
+      defaultOpen: true,
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Description">
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+              {sceneData.global_context.scene_description}
+            </p>
+          </InspectorField>
+          <InspectorField label="Time of Day">
+            <InspectorValue value={sceneData.global_context.time_of_day} />
+          </InspectorField>
+          <InspectorField label="Atmosphere">
+            <InspectorValue value={sceneData.global_context.weather_atmosphere} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "lighting",
+      title: "Lighting",
+      defaultOpen: true,
+      children: (
+        <div className="grid grid-cols-2 gap-3">
+          <InspectorField label="Source">
+            <InspectorValue value={sceneData.global_context.lighting.source} />
+          </InspectorField>
+          <InspectorField label="Direction">
+            <InspectorValue value={sceneData.global_context.lighting.direction} />
+          </InspectorField>
+          <InspectorField label="Quality">
+            <InspectorValue value={sceneData.global_context.lighting.quality} />
+          </InspectorField>
+          <InspectorField label="Temperature">
+            <InspectorValue value={sceneData.global_context.lighting.color_temp} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "colors",
+      title: "Color Palette",
+      children: (
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            {sceneData.color_palette.dominant_hex_estimates.slice(0, 5).map((color, i) => (
+              <div 
+                key={i}
+                className="w-8 h-8 rounded-lg border border-[var(--glass-border)]"
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+          <InspectorField label="Contrast">
+            <InspectorValue value={sceneData.color_palette.contrast_level} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "objects",
+      title: `Objects (${sceneData.objects.length})`,
+      children: (
+        <InspectorChips items={sceneData.objects.map(obj => obj.label)} />
+      ),
+    },
+  ] : [];
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+  // Determine AI activity status
+  const aiStatus = analysisStatus === "analyzing" || isGenerating 
+    ? "processing" 
+    : error 
+      ? "error" 
+      : analysisStatus === "complete" 
+        ? "complete" 
+        : "idle";
+
+  const aiMessage = error 
+    ? error 
+    : analysisStatus === "analyzing" 
+      ? "Analyzing scene..." 
+      : isGenerating 
+        ? "Generating prompt..." 
+        : analysisStatus === "complete" 
+          ? "Analysis complete" 
+          : undefined;
+
+  return (
+    <AppShell
+      inspector={
+        sceneData ? (
+          <InspectorPanel
+            title="Scene Inspector"
+            subtitle="Quick overview of detected elements"
+            sections={inspectorSections}
+          />
+        ) : undefined
+      }
+    >
+      {/* Visual Canvas Content */}
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3 animate-fade-in">
+          <div className="
+            p-4 rounded-xl 
+            bg-error-soft border border-[var(--error)]/20 
+            text-[var(--error)] 
+            flex items-center gap-3 
+            animate-fade-in
+          ">
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm">{error}</span>
             <button 
               onClick={() => setError(null)}
-              className="ml-auto text-red-400/60 hover:text-red-400"
+              className="ml-auto text-[var(--error)]/60 hover:text-[var(--error)] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -101,22 +207,19 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Left Column - Image Upload & Preview */}
           <div className="space-y-6">
-            <div className="panel rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                Source Image
-              </h2>
+            <CanvasSection 
+              title="Source Image"
+              subtitle="Upload an image to analyze"
+            >
               <ImageUploader
                 onImageSelect={handleImageSelect}
                 currentImage={image}
                 isAnalyzing={analysisStatus === "analyzing"}
               />
-            </div>
+            </CanvasSection>
 
             {/* JSON Viewer */}
             {sceneData && (
@@ -131,54 +234,46 @@ export default function Home() {
             {sceneData ? (
               <>
                 {/* Scene Editor */}
-                <div className="panel rounded-2xl p-6 animate-fade-in">
-                  <h2 className="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Scene Editor
-                  </h2>
-                  <div className="max-h-[600px] overflow-y-auto pr-2">
+                <CanvasSection
+                  title="Scene Editor"
+                  subtitle="Modify visual attributes"
+                >
+                  <div className="max-h-[500px] overflow-y-auto pr-2 -mr-2">
                     <SceneEditor data={sceneData} onChange={handleSceneDataChange} />
                   </div>
-                </div>
+                </CanvasSection>
 
                 {/* Prompt Output */}
-                <div className="panel rounded-2xl p-6 animate-fade-in">
+                <CanvasSection>
                   <PromptOutput
                     prompt={generatedPrompt}
                     isGenerating={isGenerating}
                     onGenerate={handleGeneratePrompt}
                     hasSceneData={!!sceneData}
                   />
-                </div>
+                </CanvasSection>
               </>
             ) : (
-              <div className="panel rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-                <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <CanvasEmptyState
+                icon={
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                   </svg>
-                </div>
-                <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to Reframe</h3>
-                <p className="text-sm text-zinc-500 max-w-xs">
-                  Upload an image to analyze its visual elements and create editable scene blueprints
-                </p>
-              </div>
+                }
+                title="Ready to Reframe"
+                description="Upload an image to analyze its visual elements and create editable scene blueprints"
+              />
             )}
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/50 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between text-xs text-zinc-600">
-            <p>Reframe © 2024 • Visual Intelligence Platform</p>
-            <p>Powered by Google Gemini</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {/* AI Activity Bar */}
+      <AIActivityBar 
+        status={aiStatus}
+        message={aiMessage}
+        onDismiss={aiStatus === "complete" || aiStatus === "error" ? () => setError(null) : undefined}
+      />
+    </AppShell>
   );
 }

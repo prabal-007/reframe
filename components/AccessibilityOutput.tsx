@@ -6,6 +6,7 @@ import { AccessibilityOutput as AccessibilityData } from "@/lib/accessibility-pr
 interface AccessibilityOutputProps {
   data: AccessibilityData | null;
   isAnalyzing: boolean;
+  viewMode: "screen-reader" | "seo" | "low-vision";
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -20,12 +21,12 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors text-xs text-zinc-400 hover:text-zinc-200"
+      className="btn-ghost text-xs py-1"
       title={`Copy ${label}`}
     >
       {copied ? (
         <>
-          <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           Copied
@@ -65,11 +66,14 @@ function SpeakButton({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={handleSpeak}
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors text-xs ${
-        isSpeaking 
-          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
-          : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200"
-      }`}
+      className={`
+        flex items-center gap-1.5 px-2.5 py-1 rounded-lg 
+        transition-all duration-[var(--motion-fast)] text-xs
+        ${isSpeaking 
+          ? "bg-[var(--ai-cyan-soft)] text-[var(--ai-cyan)] border border-[var(--ai-cyan)]/30" 
+          : "btn-ghost"
+        }
+      `}
       title={isSpeaking ? "Stop speaking" : `Listen to ${label}`}
     >
       {isSpeaking ? (
@@ -104,18 +108,20 @@ function DescriptionCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border p-5 ${
-      highlight 
-        ? "bg-amber-500/5 border-amber-500/20" 
-        : "bg-zinc-900/50 border-zinc-800"
-    }`}>
+    <div className={`
+      rounded-xl p-5 transition-all duration-[var(--motion-fast)]
+      ${highlight 
+        ? "bg-[var(--accent-soft)] border border-[var(--accent-primary)]/20" 
+        : "bg-[var(--bg-surface)] border border-[var(--glass-border)]"
+      }
+    `}>
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
-          <h3 className={`font-medium ${highlight ? "text-amber-400" : "text-zinc-200"}`}>
+          <h3 className={`font-medium text-sm ${highlight ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"}`}>
             {title}
           </h3>
           {badge && (
-            <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-500">
+            <span className="text-xs px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">
               {badge}
             </span>
           )}
@@ -125,21 +131,141 @@ function DescriptionCard({
           <CopyButton text={content} label={title} />
         </div>
       </div>
-      <p className="text-sm text-zinc-400 leading-relaxed">{content}</p>
+      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{content}</p>
     </div>
   );
 }
 
-export default function AccessibilityOutput({ data, isAnalyzing }: AccessibilityOutputProps) {
+// Studio-style audio narration panel
+function AudioNarrationPanel({ text, title }: { text: string; title: string }) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const handleSpeak = useCallback(() => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setProgress(0);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+    
+    // Simulate progress
+    const words = text.split(' ').length;
+    const duration = (words / 2.5) * 1000; // ~150 words per minute
+    const startTime = Date.now();
+    
+    const updateProgress = () => {
+      if (!isSpeaking) return;
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min((elapsed / duration) * 100, 100);
+      setProgress(newProgress);
+      if (newProgress < 100) {
+        requestAnimationFrame(updateProgress);
+      }
+    };
+    
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      requestAnimationFrame(updateProgress);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setProgress(100);
+      setTimeout(() => setProgress(0), 1000);
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setProgress(0);
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  }, [text, isSpeaking]);
+
+  return (
+    <div className="panel-glass p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-[var(--text-primary)] flex items-center gap-2">
+          <svg className="w-4 h-4 text-[var(--ai-cyan)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          {title}
+        </h3>
+        <span className="ai-badge">Studio Narration</span>
+      </div>
+
+      {/* Waveform visualization placeholder */}
+      <div className="relative h-16 bg-[var(--bg-surface)] rounded-lg overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center gap-1">
+          {Array.from({ length: 40 }).map((_, i) => (
+            <div
+              key={i}
+              className={`w-1 rounded-full transition-all duration-100 ${
+                isSpeaking ? "bg-[var(--ai-cyan)]" : "bg-[var(--text-muted)]/30"
+              }`}
+              style={{
+                height: isSpeaking 
+                  ? `${20 + Math.sin(Date.now() / 100 + i) * 20}px`
+                  : '8px',
+                opacity: isSpeaking ? 0.8 : 0.3,
+              }}
+            />
+          ))}
+        </div>
+        {/* Progress bar */}
+        <div 
+          className="absolute bottom-0 left-0 h-1 bg-[var(--ai-cyan)] transition-all duration-100"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSpeak}
+          className={`
+            flex items-center justify-center w-12 h-12 rounded-full
+            transition-all duration-[var(--motion-fast)]
+            ${isSpeaking 
+              ? "bg-[var(--ai-cyan)] text-[var(--bg-root)]" 
+              : "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-hover)]"
+            }
+          `}
+        >
+          {isSpeaking ? (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+        <div className="flex-1">
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-2">
+            {text}
+          </p>
+        </div>
+        <CopyButton text={text} label="narration" />
+      </div>
+    </div>
+  );
+}
+
+export default function AccessibilityOutput({ data, isAnalyzing, viewMode }: AccessibilityOutputProps) {
   if (isAnalyzing) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 animate-pulse">
-            <div className="h-4 bg-zinc-800 rounded w-1/4 mb-4" />
+          <div key={i} className="rounded-xl bg-[var(--bg-surface)] border border-[var(--glass-border)] p-5 ai-processing">
+            <div className="h-4 bg-[var(--bg-elevated)] rounded w-1/4 mb-4" />
             <div className="space-y-2">
-              <div className="h-3 bg-zinc-800 rounded w-full" />
-              <div className="h-3 bg-zinc-800 rounded w-5/6" />
+              <div className="h-3 bg-[var(--bg-elevated)] rounded w-full" />
+              <div className="h-3 bg-[var(--bg-elevated)] rounded w-5/6" />
             </div>
           </div>
         ))}
@@ -149,71 +275,103 @@ export default function AccessibilityOutput({ data, isAnalyzing }: Accessibility
 
   if (!data) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="rounded-xl bg-[var(--bg-surface)] border border-[var(--glass-border)] p-12 flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to Analyze</h3>
-        <p className="text-sm text-zinc-500 max-w-xs">
+        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">Ready to Analyze</h3>
+        <p className="text-sm text-[var(--text-muted)] max-w-xs">
           Upload an image to generate accessible descriptions for screen readers and audio
         </p>
       </div>
     );
   }
 
+  // Different content based on view mode
+  if (viewMode === "screen-reader") {
+    return (
+      <div className="space-y-4">
+        <DescriptionCard
+          title="Alt Text"
+          content={data.short_alt}
+          badge="Primary"
+          highlight
+        />
+        <AudioNarrationPanel 
+          text={data.long_audio_description} 
+          title="Audio Description" 
+        />
+        {data.detected_text && data.detected_text.length > 0 && (
+          <div className="rounded-xl bg-[var(--bg-surface)] border border-[var(--glass-border)] p-5">
+            <h3 className="font-medium text-sm text-[var(--text-primary)] mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Detected Text (OCR)
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {data.detected_text.map((text, idx) => (
+                <span 
+                  key={idx}
+                  className="text-sm px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-mono"
+                >
+                  &ldquo;{text}&rdquo;
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (viewMode === "seo") {
+    return (
+      <div className="space-y-4">
+        <DescriptionCard
+          title="SEO Alt Text"
+          content={data.short_alt}
+          badge="125 chars max"
+          highlight
+        />
+        <DescriptionCard
+          title="Rich Description"
+          content={data.medium_description}
+          badge="Social/OpenGraph"
+        />
+        {data.suggested_context && (
+          <div className="rounded-xl bg-[var(--bg-surface)] border border-[var(--glass-border)] p-5">
+            <h3 className="font-medium text-sm text-[var(--text-primary)] mb-2 flex items-center gap-2">
+              <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Contextual Keywords
+            </h3>
+            <p className="text-sm text-[var(--text-muted)]">{data.suggested_context}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Low vision mode - emphasize audio and large text
   return (
     <div className="space-y-4">
-      {/* Short Alt Text - Highlighted as primary */}
+      <AudioNarrationPanel 
+        text={data.long_audio_description} 
+        title="Full Audio Description" 
+      />
       <DescriptionCard
-        title="Alt Text"
-        content={data.short_alt}
-        badge="Screen Reader"
+        title="Simple Description"
+        content={data.medium_description}
         highlight
       />
-
-      {/* Medium Description */}
-      <DescriptionCard
-        title="Medium Description"
-        content={data.medium_description}
-        badge="Social Media"
-      />
-
-      {/* Long Audio Description */}
-      <DescriptionCard
-        title="Audio Description"
-        content={data.long_audio_description}
-        badge="Extended"
-      />
-
-      {/* Detected Text */}
-      {data.detected_text && data.detected_text.length > 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h3 className="font-medium text-zinc-200 mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Detected Text
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {data.detected_text.map((text, idx) => (
-              <span 
-                key={idx}
-                className="text-sm px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 font-mono"
-              >
-                "{text}"
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Content Warnings */}
       {data.content_warnings && data.content_warnings.length > 0 && (
-        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5">
-          <h3 className="font-medium text-yellow-400 mb-3 flex items-center gap-2">
+        <div className="rounded-xl bg-warning-soft border border-[var(--warning)]/20 p-5">
+          <h3 className="font-medium text-sm text-[var(--warning)] mb-3 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -221,25 +379,11 @@ export default function AccessibilityOutput({ data, isAnalyzing }: Accessibility
           </h3>
           <ul className="space-y-1">
             {data.content_warnings.map((warning, idx) => (
-              <li key={idx} className="text-sm text-yellow-200/70">• {warning}</li>
+              <li key={idx} className="text-sm text-[var(--warning)]/80">• {warning}</li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {/* Suggested Context */}
-      {data.suggested_context && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h3 className="font-medium text-zinc-200 mb-2 flex items-center gap-2">
-            <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Suggested Context
-          </h3>
-          <p className="text-sm text-zinc-500">{data.suggested_context}</p>
         </div>
       )}
     </div>
   );
 }
-

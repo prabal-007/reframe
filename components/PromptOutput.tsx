@@ -27,26 +27,30 @@ export default function PromptOutput({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-          <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+          <svg className="w-4 h-4 text-[var(--ai-cyan)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           Generated Prompt
+          {prompt && (
+            <span className="ai-badge">AI Generated</span>
+          )}
         </h2>
         <button
           onClick={onGenerate}
           disabled={!hasSceneData || isGenerating}
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200
+            flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm 
+            transition-all duration-[var(--motion-fast)]
             ${hasSceneData && !isGenerating
-              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20"
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+              ? "btn-primary"
+              : "bg-[var(--bg-elevated)] text-[var(--text-muted)] cursor-not-allowed"
             }
           `}
         >
           {isGenerating ? (
             <>
-              <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               Generating...
             </>
           ) : (
@@ -60,17 +64,17 @@ export default function PromptOutput({
         </button>
       </div>
 
-      <div className="relative rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+      <div className="relative rounded-xl bg-[var(--bg-surface)] overflow-hidden shadow-[var(--shadow-sm)]">
         {prompt ? (
           <>
             <div className="absolute top-3 right-3 z-10">
               <button
                 onClick={handleCopy}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/80 backdrop-blur hover:bg-zinc-700 transition-colors text-xs text-zinc-300"
+                className="btn-ghost text-xs py-1.5"
               >
                 {copied ? (
                   <>
-                    <svg className="w-3.5 h-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Copied!
@@ -85,25 +89,28 @@ export default function PromptOutput({
                 )}
               </button>
             </div>
-            <div className="p-6 pr-24">
-              <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap">
+            {/* AI Processing shimmer when generating */}
+            {isGenerating && <div className="ai-processing absolute inset-0 pointer-events-none" />}
+            
+            <div className="p-5 pr-24">
+              <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap text-sm">
                 {prompt}
               </p>
             </div>
-            <div className="px-6 py-3 border-t border-zinc-800 bg-zinc-800/30">
-              <p className="text-xs text-zinc-500">
+            <div className="px-5 py-3 border-t border-[var(--glass-border)] bg-[var(--bg-elevated)]">
+              <p className="text-xs text-[var(--text-muted)]">
                 Use this prompt with Midjourney, DALL-E, Imagen, or Stable Diffusion
               </p>
             </div>
           </>
         ) : (
           <div className="p-12 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-elevated)] flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
-            <p className="text-zinc-500 text-sm">
+            <p className="text-[var(--text-muted)] text-sm max-w-xs">
               {hasSceneData 
                 ? "Click 'Generate Prompt' to create an image generation prompt from your scene data"
                 : "Upload and analyze an image first to generate prompts"
@@ -115,4 +122,3 @@ export default function PromptOutput({
     </div>
   );
 }
-

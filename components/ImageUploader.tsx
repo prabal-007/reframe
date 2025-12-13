@@ -66,11 +66,11 @@ export default function ImageUploader({
         onDragOver={!isAnalyzing ? handleDragOver : undefined}
         onDragLeave={!isAnalyzing ? handleDragLeave : undefined}
         className={`
-          relative overflow-hidden rounded-2xl border-2 border-dashed 
-          transition-all duration-300 ease-out
+          relative overflow-hidden rounded-xl border-2 border-dashed 
+          transition-all duration-[var(--motion-normal)] ease-[var(--ease-standard)]
           ${isDragging 
-            ? "border-amber-400 bg-amber-400/5 scale-[1.02]" 
-            : "border-zinc-700 hover:border-zinc-500 bg-zinc-900/50"
+            ? "border-[var(--accent-primary)] bg-[var(--accent-soft)] scale-[1.01]" 
+            : "border-[var(--glass-border)] hover:border-[var(--text-muted)] bg-[var(--bg-surface)]"
           }
           ${isAnalyzing ? "cursor-wait opacity-70" : "cursor-pointer"}
           ${currentImage ? "aspect-video" : "aspect-[4/3]"}
@@ -84,18 +84,27 @@ export default function ImageUploader({
               className="w-full h-full object-contain"
             />
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <div className="absolute inset-0 bg-[var(--bg-root)]/80 backdrop-blur-sm flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-amber-400 font-medium tracking-wide">
+                  <div className="w-10 h-10 border-2 border-[var(--ai-cyan)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[var(--ai-cyan)] font-medium text-sm tracking-wide">
                     Analyzing scene...
                   </span>
                 </div>
               </div>
             )}
             {!isAnalyzing && (
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-                <span className="text-white font-medium bg-black/50 px-4 py-2 rounded-lg">
+              <div className="
+                absolute inset-0 bg-[var(--bg-root)]/0 hover:bg-[var(--bg-root)]/60 
+                backdrop-blur-0 hover:backdrop-blur-sm
+                transition-all duration-[var(--motion-normal)]
+                flex items-center justify-center opacity-0 hover:opacity-100
+              ">
+                <span className="
+                  text-[var(--text-primary)] font-medium text-sm
+                  bg-[var(--bg-elevated)] px-4 py-2 rounded-lg
+                  shadow-lg
+                ">
                   Click to replace
                 </span>
               </div>
@@ -104,12 +113,14 @@ export default function ImageUploader({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8">
             <div className={`
-              w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 
-              flex items-center justify-center transition-transform duration-300
+              w-16 h-16 rounded-2xl 
+              bg-[var(--accent-soft)]
+              flex items-center justify-center 
+              transition-transform duration-[var(--motion-normal)]
               ${isDragging ? "scale-110" : ""}
             `}>
               <svg 
-                className="w-8 h-8 text-amber-400" 
+                className="w-8 h-8 text-[var(--accent-primary)]" 
                 fill="none" 
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -123,10 +134,10 @@ export default function ImageUploader({
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-zinc-200 font-medium text-lg">
+              <p className="text-[var(--text-primary)] font-medium text-lg">
                 Drop your image here
               </p>
-              <p className="text-zinc-500 text-sm mt-1">
+              <p className="text-[var(--text-muted)] text-sm mt-1">
                 or click to browse
               </p>
             </div>
@@ -134,7 +145,7 @@ export default function ImageUploader({
               {["PNG", "JPG", "WebP"].map((format) => (
                 <span 
                   key={format}
-                  className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400"
+                  className="text-xs px-2 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]"
                 >
                   {format}
                 </span>
@@ -146,4 +157,3 @@ export default function ImageUploader({
     </div>
   );
 }
-

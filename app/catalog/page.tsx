@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Header from "@/components/Header";
+import AppShell, { CanvasSection, CanvasEmptyState, AIActivityBar } from "@/components/AppShell";
+import InspectorPanel, { InspectorField, InspectorValue } from "@/components/InspectorPanel";
 import BatchUploader from "@/components/BatchUploader";
 import CatalogEntryCard from "@/components/CatalogEntryCard";
 import { CatalogEntry, formatForExport, ExportFormat } from "@/lib/catalog-prompts";
@@ -11,6 +12,7 @@ export default function CatalogPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<CatalogEntry | null>(null);
 
   const handleFilesSelected = useCallback(async (files: Array<{ dataUrl: string; filename: string }>) => {
     setIsProcessing(true);
@@ -47,7 +49,10 @@ export default function CatalogPage() {
 
   const handleRemoveEntry = useCallback((id: string) => {
     setEntries(prev => prev.filter(e => e.id !== id));
-  }, []);
+    if (selectedEntry?.id === id) {
+      setSelectedEntry(null);
+    }
+  }, [selectedEntry]);
 
   const handleExport = useCallback((format: ExportFormat) => {
     const content = formatForExport(entries, format);
@@ -63,6 +68,7 @@ export default function CatalogPage() {
   const handleClearAll = useCallback(() => {
     if (confirm("Clear all cataloged entries?")) {
       setEntries([]);
+      setSelectedEntry(null);
     }
   }, []);
 
@@ -70,34 +76,187 @@ export default function CatalogPage() {
     sum + e.metadata.tags.primary.length + e.metadata.tags.secondary.length, 0
   );
 
-  return (
-    <div className="min-h-screen">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-zinc-100">Image Catalog</h2>
-              <p className="text-sm text-zinc-500">Auto-tag and create searchable metadata for your images</p>
-            </div>
-          </div>
+  // Build inspector sections for selected entry
+  const inspectorSections = selectedEntry ? [
+    {
+      id: "info",
+      title: "Image Info",
+      defaultOpen: true,
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Filename">
+            <InspectorValue value={selectedEntry.filename} />
+          </InspectorField>
+          <InspectorField label="SEO Title">
+            <InspectorValue value={selectedEntry.metadata.seo.title} copyable />
+          </InspectorField>
         </div>
+      ),
+    },
+    {
+      id: "tags",
+      title: `Tags (${selectedEntry.metadata.tags.primary.length + selectedEntry.metadata.tags.secondary.length})`,
+      defaultOpen: true,
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Primary">
+            <div className="flex flex-wrap gap-1">
+              {selectedEntry.metadata.tags.primary.slice(0, 8).map((tag, i) => (
+                <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-[var(--accent-soft)] text-[var(--accent-primary)]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </InspectorField>
+          <InspectorField label="Secondary">
+            <div className="flex flex-wrap gap-1">
+              {selectedEntry.metadata.tags.secondary.slice(0, 6).map((tag, i) => (
+                <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "colors",
+      title: "Colors",
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Dominant">
+            <div className="flex gap-1">
+              {selectedEntry.metadata.colors.dominant.slice(0, 5).map((color, i) => (
+                <div 
+                  key={i}
+                  className="w-6 h-6 rounded border border-[var(--glass-border)]"
+                  style={{ backgroundColor: color.hex }}
+                  title={`${color.name} (${color.percentage}%)`}
+                />
+              ))}
+            </div>
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "context",
+      title: "Context",
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Setting">
+            <InspectorValue value={selectedEntry.metadata.context.setting} />
+          </InspectorField>
+          <InspectorField label="Time">
+            <InspectorValue value={selectedEntry.metadata.context.time_of_day || "Unknown"} />
+          </InspectorField>
+          <InspectorField label="Mood">
+            <InspectorValue value={selectedEntry.metadata.context.mood || "Neutral"} />
+          </InspectorField>
+        </div>
+      ),
+    },
+  ] : [
+    {
+      id: "stats",
+      title: "Catalog Stats",
+      defaultOpen: true,
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Total Images">
+            <InspectorValue value={entries.length.toString()} />
+          </InspectorField>
+          <InspectorField label="Total Tags">
+            <InspectorValue value={totalTags.toString()} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "export",
+      title: "Export Options",
+      defaultOpen: true,
+      children: entries.length > 0 ? (
+        <div className="space-y-2">
+          <button
+            onClick={() => handleExport("json")}
+            className="w-full py-2 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm flex items-center justify-center gap-2"
+          >
+            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--ai-cyan-soft)] text-[var(--ai-cyan)]">JSON</span>
+            Full Metadata
+          </button>
+          <button
+            onClick={() => handleExport("csv")}
+            className="w-full py-2 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm flex items-center justify-center gap-2"
+          >
+            <span className="text-xs px-1.5 py-0.5 rounded bg-success-soft text-[var(--success)]">CSV</span>
+            Spreadsheet
+          </button>
+          <button
+            onClick={() => handleExport("keywords")}
+            className="w-full py-2 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm flex items-center justify-center gap-2"
+          >
+            <span className="text-xs px-1.5 py-0.5 rounded bg-warning-soft text-[var(--warning)]">TXT</span>
+            Keywords Only
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--text-muted)]">Upload images to enable export</p>
+      ),
+    },
+  ];
 
+  const aiStatus = isProcessing 
+    ? "processing" 
+    : error 
+      ? "error" 
+      : entries.length > 0 
+        ? "complete" 
+        : "idle";
+
+  return (
+    <AppShell
+      inspector={
+        <InspectorPanel
+          title={selectedEntry ? "Image Details" : "Catalog Overview"}
+          subtitle={selectedEntry ? "Selected image metadata" : "Batch cataloging"}
+          sections={inspectorSections}
+          footer={
+            entries.length > 0 && !selectedEntry ? (
+              <button
+                onClick={handleClearAll}
+                className="w-full py-2 rounded-lg border border-[var(--error)]/20 text-[var(--error)] hover:bg-error-soft transition-colors text-sm"
+              >
+                Clear All Entries
+              </button>
+            ) : selectedEntry ? (
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="w-full py-2 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm"
+              >
+                Back to Overview
+              </button>
+            ) : undefined
+          }
+        />
+      }
+    >
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3">
+          <div className="
+            p-4 rounded-xl 
+            bg-error-soft border border-[var(--error)]/20 
+            text-[var(--error)] 
+            flex items-center gap-3 
+            animate-fade-in
+          ">
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm">{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400">
+            <button onClick={() => setError(null)} className="ml-auto text-[var(--error)]/60 hover:text-[var(--error)]">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -105,148 +264,85 @@ export default function CatalogPage() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Upload */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="panel rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                Upload Images
-              </h3>
-              <BatchUploader
-                onFilesSelected={handleFilesSelected}
-                isProcessing={isProcessing}
-                progress={progress}
-              />
-            </div>
+        {/* Upload Section */}
+        <CanvasSection
+          title="Batch Upload"
+          subtitle="Upload multiple images to auto-catalog"
+        >
+          <BatchUploader
+            onFilesSelected={handleFilesSelected}
+            isProcessing={isProcessing}
+            progress={progress}
+          />
+        </CanvasSection>
 
-            {/* Stats */}
-            {entries.length > 0 && (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Statistics
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
-                    <div className="text-2xl font-bold text-zinc-100">{entries.length}</div>
-                    <div className="text-xs text-zinc-500 mt-1">Images</div>
-                  </div>
-                  <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
-                    <div className="text-2xl font-bold text-zinc-100">{totalTags}</div>
-                    <div className="text-xs text-zinc-500 mt-1">Tags</div>
-                  </div>
-                </div>
+        {/* Catalog Grid - Visual Spreadsheet Style */}
+        {entries.length > 0 ? (
+          <CanvasSection
+            title={`Cataloged Images (${entries.length})`}
+            subtitle="Click an entry to view details"
+            actions={
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                <span>{totalTags} tags generated</span>
               </div>
-            )}
-
-            {/* Export Options */}
-            {entries.length > 0 && (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Export
-                </h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleExport("json")}
-                    className="w-full py-2 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm flex items-center justify-center gap-2"
-                  >
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">JSON</span>
-                    Full Metadata
-                  </button>
-                  <button
-                    onClick={() => handleExport("csv")}
-                    className="w-full py-2 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm flex items-center justify-center gap-2"
-                  >
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">CSV</span>
-                    Spreadsheet
-                  </button>
-                  <button
-                    onClick={() => handleExport("keywords")}
-                    className="w-full py-2 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm flex items-center justify-center gap-2"
-                  >
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">TXT</span>
-                    Keywords Only
-                  </button>
-                </div>
-                <button
-                  onClick={handleClearAll}
-                  className="w-full mt-4 py-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+            }
+          >
+            <div className="space-y-3">
+              {entries.map(entry => (
+                <div 
+                  key={entry.id}
+                  onClick={() => setSelectedEntry(entry)}
+                  className={`
+                    cursor-pointer transition-all duration-[var(--motion-fast)]
+                    ${selectedEntry?.id === entry.id 
+                      ? "ring-2 ring-[var(--accent-primary)] ring-offset-2 ring-offset-[var(--bg-root)]" 
+                      : ""
+                    }
+                  `}
                 >
-                  Clear All Entries
-                </button>
+                  <CatalogEntryCard
+                    entry={entry}
+                    onRemove={handleRemoveEntry}
+                  />
+                </div>
+              ))}
+            </div>
+          </CanvasSection>
+        ) : !isProcessing && (
+          <CanvasEmptyState
+            icon={
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            }
+            title="Visual Spreadsheet"
+            description="Upload images to automatically generate searchable tags, metadata, and SEO-ready descriptions"
+            action={
+              <div className="flex flex-wrap gap-2 justify-center">
+                <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Auto-tagging</span>
+                <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Color Analysis</span>
+                <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">SEO Metadata</span>
+                <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Batch Export</span>
               </div>
-            )}
-          </div>
+            }
+          />
+        )}
+      </div>
 
-          {/* Right Column - Catalog Entries */}
-          <div className="lg:col-span-2 space-y-4">
-            {entries.length > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-zinc-100">
-                    Cataloged Images ({entries.length})
-                  </h3>
-                </div>
-                <div className="space-y-4">
-                  {entries.map(entry => (
-                    <CatalogEntryCard
-                      key={entry.id}
-                      entry={entry}
-                      onRemove={handleRemoveEntry}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="panel rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-                <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-zinc-300 mb-2">No Images Cataloged</h3>
-                <p className="text-sm text-zinc-500 max-w-xs">
-                  Upload images to automatically generate searchable tags, metadata, and SEO-ready descriptions
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2 justify-center">
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Auto-tagging</span>
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Color Analysis</span>
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">SEO Metadata</span>
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Batch Export</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/50 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between text-xs text-zinc-600">
-            <p>Reframe © 2024 • Visual Intelligence Platform</p>
-            <p>Powered by Google Gemini</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {/* AI Activity Bar */}
+      <AIActivityBar 
+        status={aiStatus}
+        message={
+          error 
+            ? error 
+            : isProcessing 
+              ? `Cataloging ${progress.current}/${progress.total}...` 
+              : entries.length > 0 
+                ? `${entries.length} images cataloged` 
+                : undefined
+        }
+        onDismiss={error ? () => setError(null) : undefined}
+      />
+    </AppShell>
   );
 }
-
-
-
-
-
-
-
-
-
-

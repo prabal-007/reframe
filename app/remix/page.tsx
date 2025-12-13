@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Header from "@/components/Header";
+import AppShell, { CanvasSection, CanvasEmptyState, AIActivityBar } from "@/components/AppShell";
+import InspectorPanel, { InspectorField, InspectorValue, InspectorChips, InspectorColor } from "@/components/InspectorPanel";
 import ImageUploader from "@/components/ImageUploader";
 import VisualDNADisplay from "@/components/VisualDNADisplay";
 import RemixBuilder from "@/components/RemixBuilder";
@@ -83,36 +84,144 @@ export default function RemixPage() {
     }
   }, [visualDNA]);
 
-  return (
-    <div className="min-h-screen">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-zinc-100">Creative Remix</h2>
-              <p className="text-sm text-zinc-500">Extract visual DNA and apply it to new concepts</p>
-            </div>
-          </div>
+  // Build inspector sections - Visual DNA Lab style
+  const inspectorSections = visualDNA ? [
+    {
+      id: "style",
+      title: "Style Signature",
+      defaultOpen: true,
+      icon: (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        </svg>
+      ),
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Art Movement">
+            <InspectorValue value={visualDNA.style.art_movement || "Contemporary"} />
+          </InspectorField>
+          <InspectorField label="Era">
+            <InspectorValue value={visualDNA.style.era || "Modern"} />
+          </InspectorField>
+          <InspectorField label="Influences">
+            <InspectorChips items={visualDNA.style.influences || []} />
+          </InspectorField>
         </div>
+      ),
+    },
+    {
+      id: "mood",
+      title: "Mood & Atmosphere",
+      icon: (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      ),
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Primary Emotion">
+            <InspectorValue value={visualDNA.mood.primary_emotion} />
+          </InspectorField>
+          <InspectorField label="Intensity">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[var(--accent-primary)] rounded-full transition-all"
+                  style={{ 
+                    width: visualDNA.mood.intensity === "high" ? "100%" 
+                         : visualDNA.mood.intensity === "medium" ? "60%" 
+                         : "30%" 
+                  }}
+                />
+              </div>
+              <span className="text-xs text-[var(--text-muted)] capitalize">{visualDNA.mood.intensity}</span>
+            </div>
+          </InspectorField>
+          <InspectorField label="Descriptors">
+            <InspectorChips items={visualDNA.mood.descriptors || []} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "colors",
+      title: "Color DNA",
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Palette">
+            <div className="flex gap-1">
+              {visualDNA.colors.palette.slice(0, 5).map((color, i) => (
+                <div 
+                  key={i}
+                  className="w-6 h-6 rounded border border-[var(--glass-border)]"
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+            </div>
+          </InspectorField>
+          <InspectorField label="Harmony">
+            <InspectorValue value={visualDNA.colors.harmony || "Complementary"} />
+          </InspectorField>
+          <InspectorField label="Temperature">
+            <InspectorValue value={visualDNA.colors.temperature || "Neutral"} />
+          </InspectorField>
+        </div>
+      ),
+    },
+    {
+      id: "composition",
+      title: "Composition",
+      children: (
+        <div className="space-y-3">
+          <InspectorField label="Structure">
+            <InspectorValue value={visualDNA.composition?.structure || "Balanced"} />
+          </InspectorField>
+          <InspectorField label="Flow">
+            <InspectorValue value={visualDNA.composition?.flow || "Dynamic"} />
+          </InspectorField>
+        </div>
+      ),
+    },
+  ] : [];
 
+  const aiStatus = analysisStatus === "analyzing" 
+    ? "processing" 
+    : error 
+      ? "error" 
+      : analysisStatus === "complete" 
+        ? "complete" 
+        : "idle";
+
+  return (
+    <AppShell
+      inspector={
+        visualDNA ? (
+          <InspectorPanel
+            title="Visual DNA"
+            subtitle="Extracted style elements"
+            sections={inspectorSections}
+          />
+        ) : undefined
+      }
+    >
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3 animate-fade-in">
+          <div className="
+            p-4 rounded-xl 
+            bg-error-soft border border-[var(--error)]/20 
+            text-[var(--error)] 
+            flex items-center gap-3 
+            animate-fade-in
+          ">
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm">{error}</span>
             <button 
               onClick={() => setError(null)}
-              className="ml-auto text-red-400/60 hover:text-red-400"
+              className="ml-auto text-[var(--error)]/60 hover:text-[var(--error)] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -121,79 +230,75 @@ export default function RemixPage() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Left Column - Reference Image & DNA */}
           <div className="space-y-6">
-            <div className="panel rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Reference Image
-              </h3>
+            <CanvasSection 
+              title="Reference Image"
+              subtitle="Upload an image with a style to extract"
+            >
               <ImageUploader
                 onImageSelect={handleImageSelect}
                 currentImage={image}
                 isAnalyzing={analysisStatus === "analyzing"}
               />
-              <p className="text-xs text-zinc-500 mt-3 text-center">
-                Upload an image with a style you want to extract and remix
-              </p>
-            </div>
+            </CanvasSection>
 
-            {/* Visual DNA Display */}
+            {/* Visual DNA Display - Lab aesthetic */}
             {visualDNA && (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                <h3 className="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  Extracted Visual DNA
-                </h3>
-                <div className="max-h-[600px] overflow-y-auto pr-2">
+              <CanvasSection
+                title="Extracted Visual DNA"
+                subtitle="Style signature from reference"
+                className="animate-fade-in"
+              >
+                <div className="max-h-[500px] overflow-y-auto pr-2 -mr-2">
                   <VisualDNADisplay data={visualDNA} />
                 </div>
-              </div>
+              </CanvasSection>
             )}
           </div>
 
           {/* Right Column - Remix Builder */}
           <div className="space-y-6">
             {visualDNA ? (
-              <div className="panel rounded-2xl p-6 animate-fade-in">
-                {/* Mode Toggle */}
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    {remixMode === "concepts" ? "Remix Builder" : "Style Transfer"}
-                  </h3>
-                  <div className="flex gap-1 p-1 rounded-xl bg-zinc-900/80 border border-zinc-800">
+              <CanvasSection
+                title={remixMode === "concepts" ? "Remix Builder" : "Style Transfer"}
+                subtitle={remixMode === "concepts" 
+                  ? "Apply extracted DNA to new concepts" 
+                  : "Transfer style to another image"
+                }
+                actions={
+                  <div className="flex gap-1 p-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--glass-border)]">
                     <button
                       onClick={() => setRemixMode("concepts")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        remixMode === "concepts"
-                          ? "bg-pink-500/20 text-pink-400"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
+                      className={`
+                        px-3 py-1.5 rounded-md text-xs font-medium 
+                        transition-all duration-[var(--motion-fast)]
+                        ${remixMode === "concepts"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-primary)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        }
+                      `}
                     >
-                      💡 New Concepts
+                      New Concepts
                     </button>
                     <button
                       onClick={() => setRemixMode("transfer")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        remixMode === "transfer"
-                          ? "bg-rose-500/20 text-rose-400"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
+                      className={`
+                        px-3 py-1.5 rounded-md text-xs font-medium 
+                        transition-all duration-[var(--motion-fast)]
+                        ${remixMode === "transfer"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-primary)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        }
+                      `}
                     >
-                      🔄 Style Transfer
+                      Style Transfer
                     </button>
                   </div>
-                </div>
-
-                {/* Mode Content */}
+                }
+                className="animate-fade-in"
+              >
                 {remixMode === "concepts" ? (
                   <RemixBuilder
                     visualDNA={visualDNA}
@@ -202,40 +307,44 @@ export default function RemixPage() {
                 ) : (
                   <StyleTransfer visualDNA={visualDNA} />
                 )}
-              </div>
+              </CanvasSection>
             ) : (
-              <div className="panel rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[500px]">
-                <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <CanvasEmptyState
+                icon={
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                   </svg>
-                </div>
-                <h3 className="text-lg font-medium text-zinc-300 mb-2">Ready to Remix</h3>
-                <p className="text-sm text-zinc-500 max-w-xs">
-                  Upload a reference image to extract its visual DNA and apply the style to new concepts
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2 justify-center">
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Style & Mood</span>
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Color Theory</span>
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Lighting</span>
-                  <span className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400">Composition</span>
-                </div>
-              </div>
+                }
+                title="Visual DNA Lab"
+                description="Upload a reference image to extract its visual DNA and apply the style to new concepts"
+                action={
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Style & Mood</span>
+                    <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Color Theory</span>
+                    <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Lighting</span>
+                    <span className="text-xs px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] text-[var(--text-muted)]">Composition</span>
+                  </div>
+                }
+              />
             )}
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/50 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between text-xs text-zinc-600">
-            <p>Reframe © 2024 • Visual Intelligence Platform</p>
-            <p>Powered by Google Gemini</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {/* AI Activity Bar */}
+      <AIActivityBar 
+        status={aiStatus}
+        message={
+          error 
+            ? error 
+            : analysisStatus === "analyzing" 
+              ? "Extracting visual DNA..." 
+              : analysisStatus === "complete" 
+                ? "DNA extracted successfully" 
+                : undefined
+        }
+        onDismiss={error ? () => setError(null) : undefined}
+      />
+    </AppShell>
   );
 }
-
