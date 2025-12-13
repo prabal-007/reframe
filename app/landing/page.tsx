@@ -67,7 +67,7 @@ const liveScreenshots: Screenshot[] = [
     src: "/screenshots/scene-editor.png",
     alt: "Scene Editor live UI",
     hint: "Image → JSON blueprint → prompts",
-    href: "/scene-editor",
+    href: "/",
   },
   {
     title: "Accessibility",
@@ -99,7 +99,7 @@ function ScreenshotCard({ shot }: { shot: Screenshot }) {
       href={shot.href || "#"}
       className="group block rounded-2xl border border-zinc-800 bg-zinc-950/80 overflow-hidden hover:border-indigo-500/40 transition"
     >
-      <div className="relative aspect-16/10 bg-zinc-900">
+      <div className="relative aspect-[16/10] bg-zinc-900">
         {!errored ? (
           <Image
             src={shot.src}
@@ -115,7 +115,7 @@ function ScreenshotCard({ shot }: { shot: Screenshot }) {
             Add {shot.src} to /public to show live UI
           </div>
         )}
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition" />
       </div>
       <div className="p-4 flex items-center justify-between gap-3">
         <div>
@@ -141,7 +141,7 @@ function WorkflowCard({ step }: { step: WorkflowStep }) {
           <p className="text-sm text-zinc-300">{step.caption}</p>
         </div>
       </div>
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 text-sm text-zinc-500 relative aspect-4/3">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 text-sm text-zinc-500 relative aspect-[4/3]">
         {step.screenshot && !errored ? (
           <>
             <Image
@@ -152,7 +152,7 @@ function WorkflowCard({ step }: { step: WorkflowStep }) {
               sizes="(max-width: 768px) 100vw, 33vw"
               onError={() => setErrored(true)}
             />
-            <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent rounded-lg" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg" />
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-500">
@@ -188,7 +188,7 @@ export default function LandingPage() {
             </p>
             <div className="flex items-center gap-3">
               <Link
-                href="/scene-editor"
+                href="/"
                 className="px-5 py-3 rounded-xl bg-indigo-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 transition"
               >
                 Open Reframe
@@ -203,15 +203,15 @@ export default function LandingPage() {
 
             {/* Hero Visual - live screenshot */}
             <div className="mt-10 w-full">
-              <div className="relative rounded-2xl border border-zinc-800/80 bg-linear-to-br from-[#0f1420] to-[#0b0d13] shadow-2xl overflow-hidden">
-                <div className="relative aspect-video">
+              <div className="relative rounded-2xl border border-zinc-800/80 bg-gradient-to-br from-[#0f1420] to-[#0b0d13] shadow-2xl overflow-hidden">
+                <div className="relative aspect-[16/9]">
                   <ScreenshotCard
                     shot={{
                       title: "Scene Editor",
                       src: "/screenshots/scene-editor.png",
                       alt: "Scene Editor live UI",
                       hint: "Canvas + Inspector",
-                      href: "/scene-editor",
+                      href: "/",
                     }}
                   />
                 </div>
@@ -311,7 +311,7 @@ export default function LandingPage() {
           <h3 className="text-2xl font-semibold">Start with one image.</h3>
           <div className="flex items-center justify-center gap-3">
             <Link
-              href="/scene-editor"
+              href="/"
               className="px-5 py-3 rounded-xl bg-indigo-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 transition"
             >
               Open Reframe
@@ -334,3 +334,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

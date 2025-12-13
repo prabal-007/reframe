@@ -1,21 +1,146 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   REFRAME DESIGN TOKENS
+   Based on tokens.md - "The physics of Reframe"
+   ========================================================================== */
+
 :root {
-  --background: #0a0a0b;
-  --foreground: #fafafa;
-  --accent: #f59e0b;
+  /* -------------------------------------------------------------------------
+     1. COLOR TOKENS
+     Dark-first system, low contrast noise, one confident accent
+     ------------------------------------------------------------------------- */
+  
+  /* Base Colors (Dark Theme) */
+  --bg-root: #0B0D12;
+  --bg-surface: #12151C;
+  --bg-elevated: #181C25;
+  --bg-glass: rgba(24, 28, 37, 0.6);
+  
+  /* Text Colors - Never use pure white */
+  --text-primary: #E6E8EE;
+  --text-secondary: #A8ADBD;
+  --text-muted: #6E7485;
+  
+  /* Accent & Intelligence Colors */
+  /* Accent = user action, Cyan = AI presence - Never mix in same element */
+  --accent-primary: #4F46E5;
+  --accent-soft: rgba(79, 70, 229, 0.18);
+  --accent-hover: #5B52F0;
+  
+  --ai-cyan: #38BDF8;
+  --ai-cyan-soft: rgba(56, 189, 248, 0.12);
+  
+  /* Status Colors (Subtle - opacity does the work) */
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  
+  /* -------------------------------------------------------------------------
+     2. TYPOGRAPHY TOKENS
+     Inter - Neutral, Professional, Invisible
+     ------------------------------------------------------------------------- */
+  
+  --font-primary: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  /* Type Scale - 14px is workhorse, 16px+ for meaning shifts */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  
+  /* Font Weights - Avoid bold unless anchoring attention */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  
+  /* -------------------------------------------------------------------------
+     3. SPACING & LAYOUT TOKENS (8px grid)
+     Prefer fewer, larger gaps - White space = confidence
+     ------------------------------------------------------------------------- */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  
+  /* Panel Widths - Feel considered, not crammed */
+  --panel-sm: 280px;
+  --panel-md: 340px;
+  --panel-lg: 420px;
+  
+  /* Tool Rail */
+  --tool-rail-width: 64px;
+  
+  /* -------------------------------------------------------------------------
+     4. ELEVATION & DEPTH TOKENS
+     Depth > Borders - Everything floats just a bit
+     ------------------------------------------------------------------------- */
+  
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  
+  /* Shadows (Very Soft) - No hard outlines */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  
+  /* Glass Effect (Controlled) - Only for floating panels & AI cards */
+  --glass-blur: blur(16px);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  
+  /* -------------------------------------------------------------------------
+     5. MOTION TOKENS
+     Intelligence moves smoothly and decisively - No bounce, no elastic
+     ------------------------------------------------------------------------- */
+  
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --motion-slow: 240ms;
+  
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* -------------------------------------------------------------------------
+     6. AI PRESENCE TOKENS
+     AI should feel: Observant, Calm, Helpful
+     ------------------------------------------------------------------------- */
+  
+  --ai-highlight: linear-gradient(
+    90deg,
+    rgba(79, 70, 229, 0.0),
+    rgba(79, 70, 229, 0.25),
+    rgba(79, 70, 229, 0.0)
+  );
+  
+  --ai-glow: 0 0 20px rgba(56, 189, 248, 0.15);
 }
 
+/* ==========================================================================
+   TAILWIND THEME INTEGRATION
+   ========================================================================== */
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-root);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-primary);
+  --font-mono: var(--font-mono);
 }
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #27272a transparent;
+  scrollbar-color: var(--bg-elevated) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -28,47 +153,248 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--bg-elevated);
   border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: var(--text-muted);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--bg-root);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--text-md);
+  line-height: 1.5;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Cinematic background gradient */
-.bg-cinematic {
+/* ==========================================================================
+   BACKGROUND UTILITIES
+   ========================================================================== */
+
+/* Premium dark background with subtle depth */
+.bg-app {
+  background: var(--bg-root);
+}
+
+/* Surface level backgrounds */
+.bg-surface {
+  background: var(--bg-surface);
+}
+
+.bg-elevated {
+  background: var(--bg-elevated);
+}
+
+/* Subtle atmospheric gradient - lab-like feel */
+.bg-atmosphere {
   background: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.08), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(234, 88, 12, 0.05), transparent),
-    linear-gradient(to bottom, #0a0a0b, #0f0f11);
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(79, 70, 229, 0.06), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(56, 189, 248, 0.04), transparent),
+    var(--bg-root);
 }
 
-/* Subtle grid pattern */
+/* Subtle grid pattern for visual structure */
 .bg-grid {
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
-/* Glow effect for buttons */
-.glow-amber {
-  box-shadow: 0 0 30px -5px rgba(245, 158, 11, 0.3);
+/* ==========================================================================
+   PANEL & CARD UTILITIES
+   ========================================================================== */
+
+/* Glass panel - for floating UI elements */
+.panel-glass {
+  background: var(--bg-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
-/* Smooth animations */
+/* Elevated panel - solid background with depth */
+.panel-elevated {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Surface panel - subtle distinction */
+.panel-surface {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+}
+
+/* ==========================================================================
+   BUTTON UTILITIES
+   ========================================================================== */
+
+/* Primary button - user actions */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent-primary);
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-md);
+  transition: all var(--motion-fast) var(--ease-standard);
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Ghost button - secondary actions */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  transition: all var(--motion-fast) var(--ease-standard);
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Icon button - toolbar actions */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  transition: all var(--motion-fast) var(--ease-standard);
+  cursor: pointer;
+  border: none;
+}
+
+.btn-icon:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.btn-icon.active {
+  background: var(--accent-soft);
+  color: var(--accent-primary);
+}
+
+/* ==========================================================================
+   AI PRESENCE UTILITIES
+   ========================================================================== */
+
+/* AI highlight - for suggestions and analysis states */
+.ai-highlight {
+  background: var(--ai-highlight);
+}
+
+/* AI glow effect - subtle presence indicator */
+.ai-glow {
+  box-shadow: var(--ai-glow);
+}
+
+/* AI badge - for AI-generated content */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  background: var(--ai-cyan-soft);
+  color: var(--ai-cyan);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+}
+
+/* AI processing indicator */
+.ai-processing {
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-processing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(56, 189, 248, 0.1),
+    transparent
+  );
+  animation: ai-shimmer 2s var(--ease-soft) infinite;
+}
+
+@keyframes ai-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ==========================================================================
+   TEXT UTILITIES
+   ========================================================================== */
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-accent { color: var(--accent-primary); }
+.text-ai { color: var(--ai-cyan); }
+
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-md { font-size: var(--text-md); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+
+/* ==========================================================================
+   ANIMATION UTILITIES
+   ========================================================================== */
+
+/* Fade in - standard entrance */
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -77,35 +403,207 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.4s ease-out forwards;
+  animation: fade-in var(--motion-slow) var(--ease-soft) forwards;
 }
 
-/* Panel styling */
-.panel {
-  background: linear-gradient(to bottom, rgba(24, 24, 27, 0.8), rgba(24, 24, 27, 0.6));
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(63, 63, 70, 0.5);
-}
-
-/* Selection styling */
-::selection {
-  background: rgba(245, 158, 11, 0.3);
-  color: #fafafa;
-}
-
-/* Focus ring */
-*:focus-visible {
-  outline: 2px solid rgba(245, 158, 11, 0.5);
-  outline-offset: 2px;
-}
-
-/* Loader animation */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+/* Slide in from right - for inspector panels */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
   }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right var(--motion-normal) var(--ease-soft) forwards;
+}
+
+/* Scale in - for modals and popovers */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in var(--motion-fast) var(--ease-soft) forwards;
+}
+
+/* Pulse - for loading states (subtle, not loud) */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s var(--ease-standard) infinite;
+}
+
+/* Spin - for loaders */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   FOCUS & INTERACTION STATES
+   ========================================================================== */
+
+/* Focus ring - accent at 40% opacity, never neon */
+*:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.4);
+  outline-offset: 2px;
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(79, 70, 229, 0.3);
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   STATUS UTILITIES
+   ========================================================================== */
+
+.status-success {
+  color: var(--success);
+}
+
+.status-warning {
+  color: var(--warning);
+}
+
+.status-error {
+  color: var(--error);
+}
+
+.bg-success-soft {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.bg-warning-soft {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.bg-error-soft {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ==========================================================================
+   LAYOUT UTILITIES
+   ========================================================================== */
+
+/* App shell layout */
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--tool-rail-width) 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+.app-shell-with-inspector {
+  grid-template-columns: var(--tool-rail-width) 1fr var(--panel-md);
+}
+
+/* Tool rail */
+.tool-rail {
+  width: var(--tool-rail-width);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4) 0;
+  gap: var(--space-2);
+}
+
+/* Global bar */
+.global-bar {
+  height: 56px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-5);
+}
+
+/* Inspector panel */
+.inspector-panel {
+  width: var(--panel-md);
+  background: var(--bg-surface);
+  border-left: 1px solid var(--glass-border);
+  overflow-y: auto;
+}
+
+/* Canvas area */
+.visual-canvas {
+  flex: 1;
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   FORM UTILITIES
+   ========================================================================== */
+
+.input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.input:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Label */
+.label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+/* ==========================================================================
+   DIVIDER
+   ========================================================================== */
+
+.divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: var(--space-4) 0;
+}
+
+.divider-vertical {
+  width: 1px;
+  height: 100%;
+  background: var(--glass-border);
 }
