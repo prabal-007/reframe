@@ -1,4 +1,13 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reframe v1.0
+## Visual Intelligence Platform
+
+5 services:
+- Scene Editor: Image analysis and prompt generation
+- Accessibility: Alt-text and audio descriptions  
+- Products: Combined color/material/background variations
+- Remix: Visual DNA extraction and style transfer
+- Catalog: Batch auto-tagging and metadata export
+
 
 ## Getting Started
 
