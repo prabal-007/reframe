@@ -7,7 +7,7 @@ interface GlobalBarProps {
 }
 
 const modeNames: Record<string, string> = {
-  "/": "Scene Editor",
+  "/scene-editor": "Scene Editor",
   "/accessibility": "Accessibility",
   "/products": "Products",
   "/remix": "Remix",
@@ -15,7 +15,7 @@ const modeNames: Record<string, string> = {
 };
 
 const modeDescriptions: Record<string, string> = {
-  "/": "Visual Reasoning Mode",
+  "/scene-editor": "Visual Reasoning Mode",
   "/accessibility": "Perspective Shift",
   "/products": "Variant Intelligence",
   "/remix": "Visual DNA Lab",

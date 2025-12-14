@@ -43,8 +43,12 @@ export default function SceneEditorPage() {
   const [hasUserEdits, setHasUserEdits] = useState(false);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryEntry[]>([]);
   
+  // Track if activity bar was dismissed (to prevent re-showing on complete)
+  const [activityDismissed, setActivityDismissed] = useState(false);
+  
   // Track original scene data to detect edits
   const originalSceneDataRef = useRef<string | null>(null);
+  const [originalSceneData, setOriginalSceneData] = useState<VisionStructOutput | null>(null);
 
   const handleImageSelect = useCallback(async (imageDataUrl: string) => {
     setImage(imageDataUrl);
@@ -55,6 +59,7 @@ export default function SceneEditorPage() {
     setHasUserEdits(false);
     setGeneratedOutput(null);
     setGenerationStatus("idle");
+    setActivityDismissed(false); // Reset dismissed state for new action
     originalSceneDataRef.current = null;
 
     // Add upload to history
@@ -81,6 +86,7 @@ export default function SceneEditorPage() {
       }
 
       setSceneData(data.sceneData);
+      setOriginalSceneData(data.sceneData);
       setAnalysisStatus("complete");
       originalSceneDataRef.current = JSON.stringify(data.sceneData);
 
@@ -101,8 +107,8 @@ export default function SceneEditorPage() {
     }
   }, []);
 
-  const handleGeneratePrompt = useCallback(async () => {
-    if (!sceneData) return;
+  const handleGeneratePrompt = useCallback(async (): Promise<string | null> => {
+    if (!sceneData) return null;
 
     setIsGenerating(true);
     setError(null);
@@ -121,8 +127,10 @@ export default function SceneEditorPage() {
       }
 
       setGeneratedPrompt(data.prompt);
+      return data.prompt; // Return the prompt so caller can use it immediately
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
+      return null;
     } finally {
       setIsGenerating(false);
     }
@@ -150,18 +158,25 @@ export default function SceneEditorPage() {
     }
   }, [hasUserEdits]);
 
-  // Handle "Render Reframed Output"
+  // Handle "Render Reframed Output" - single click generates prompt + renders
   const handleRenderOutput = useCallback(async (options?: { resolution?: GenerationResolution }) => {
-    if (!sceneData || !generatedPrompt) {
-      // Generate prompt first if not exists
-      if (sceneData && !generatedPrompt) {
-        await handleGeneratePrompt();
+    if (!sceneData) return;
+
+    // Get prompt - either use existing or generate new one
+    let promptToUse = generatedPrompt;
+    
+    if (!promptToUse) {
+      // Generate prompt first, wait for result
+      const newPrompt = await handleGeneratePrompt();
+      if (!newPrompt) {
+        // Prompt generation failed, error already set
+        return;
       }
-      return;
+      promptToUse = newPrompt;
     }
 
     // Check cache first
-    const cached = getCachedOutput(sceneData, generatedPrompt);
+    const cached = getCachedOutput(sceneData, promptToUse);
     if (cached) {
       setGeneratedOutput(cached);
       setGenerationStatus("complete");
@@ -170,10 +185,11 @@ export default function SceneEditorPage() {
 
     setGenerationStatus("generating");
     setGenerationError(null);
+    setActivityDismissed(false); // Reset dismissed state for new render
 
     const result = await renderReframedOutput(
       sceneData,
-      generatedPrompt,
+      promptToUse,
       image || undefined,
       options
     );
@@ -190,7 +206,7 @@ export default function SceneEditorPage() {
       setGenerationStatus("complete");
 
       // Cache the output
-      cacheGeneratedOutput(sceneData, generatedPrompt, linkedOutput);
+      cacheGeneratedOutput(sceneData, promptToUse, linkedOutput);
 
       // Add to history
       const genEntry = createGenerationHistoryEntry(linkedOutput);
@@ -322,15 +338,19 @@ export default function SceneEditorPage() {
   ] : [];
 
   // Determine AI activity status
-  const aiStatus = analysisStatus === "analyzing" || isGenerating || generationStatus === "generating"
+  const isProcessing = analysisStatus === "analyzing" || isGenerating || generationStatus === "generating";
+  const hasError = !!(error || generationError);
+  const isComplete = (analysisStatus === "complete" || generationStatus === "complete") && !activityDismissed;
+  
+  const aiStatus = isProcessing
     ? "processing" 
-    : error || generationError
+    : hasError
       ? "error" 
-      : analysisStatus === "complete" || generationStatus === "complete"
+      : isComplete
         ? "complete" 
         : "idle";
 
-  const aiMessage = error || generationError
+  const aiMessage = hasError
     ? error || generationError
     : analysisStatus === "analyzing" 
       ? "Analyzing scene..." 
@@ -338,9 +358,9 @@ export default function SceneEditorPage() {
         ? "Generating prompt..." 
         : generationStatus === "generating"
           ? "Rendering reframed output..."
-          : generationStatus === "complete"
+          : generationStatus === "complete" && !activityDismissed
             ? "Output ready for comparison"
-            : analysisStatus === "complete" 
+            : analysisStatus === "complete" && !activityDismissed
               ? "Analysis complete" 
               : undefined;
 
@@ -446,7 +466,12 @@ export default function SceneEditorPage() {
                   subtitle="Modify visual attributes"
                 >
                   <div className="max-h-[500px] overflow-y-auto pr-2 -mr-2">
-                    <SceneEditor data={sceneData} onChange={handleSceneDataChange} />
+                    <SceneEditor 
+                      data={sceneData} 
+                      onChange={handleSceneDataChange}
+                      originalData={originalSceneData || undefined}
+                      isRendering={generationStatus === "generating"}
+                    />
                   </div>
                 </CanvasSection>
 
@@ -499,6 +524,7 @@ export default function SceneEditorPage() {
         onDismiss={() => {
           setError(null);
           setGenerationError(null);
+          setActivityDismissed(true); // Prevent bar from re-showing
         }}
         autoClose={(aiStatus === "complete" || aiStatus === "error") ? 4000 : undefined}
       />

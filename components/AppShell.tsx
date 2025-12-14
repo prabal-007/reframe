@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import GlobalBar from "./GlobalBar";
 import ToolRail from "./ToolRail";
 
@@ -153,9 +153,21 @@ interface AIActivityBarProps {
     label: string;
     onClick: () => void;
   };
+  /** Auto-close after this many milliseconds (for complete/error states) */
+  autoClose?: number;
 }
 
-export function AIActivityBar({ status, message, onDismiss, action }: AIActivityBarProps) {
+export function AIActivityBar({ status, message, onDismiss, action, autoClose }: AIActivityBarProps) {
+  // Auto-close effect
+  React.useEffect(() => {
+    if (autoClose && onDismiss && (status === "complete" || status === "error")) {
+      const timer = setTimeout(() => {
+        onDismiss();
+      }, autoClose);
+      return () => clearTimeout(timer);
+    }
+  }, [autoClose, onDismiss, status]);
+
   if (status === "idle" && !message) return null;
 
   const statusConfig = {
