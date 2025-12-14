@@ -87,3 +87,62 @@ export interface AppState {
   error: string | null;
 }
 
+// =============================================================================
+// Image Generation Types ("Render Reframed Output")
+// =============================================================================
+
+/** Status of the image generation process */
+export type GenerationStatus = "idle" | "generating" | "complete" | "error";
+
+/** Resolution options for generated images */
+export type GenerationResolution = "512x512" | "768x768" | "1024x1024";
+
+/** Metadata about a generated output */
+export interface GenerationMetadata {
+  model: string;
+  resolution: string;
+  promptSnapshot: string;
+  confidence?: number;
+}
+
+/** A generated output with full lineage back to source */
+export interface GeneratedOutput {
+  /** Unique identifier for this generation */
+  id: string;
+  /** Reference to the source image (optional, for lineage) */
+  sourceImageId?: string;
+  /** The generated image as a data URL */
+  generatedImageUrl: string;
+  /** When this was generated */
+  timestamp: number;
+  /** Snapshot of scene data at time of generation */
+  sceneDataSnapshot?: VisionStructOutput;
+  /** The prompt used for generation */
+  promptSnapshot: string;
+  /** Generation metadata */
+  metadata: GenerationMetadata;
+}
+
+/** Options for generation request */
+export interface GenerationOptions {
+  resolution?: GenerationResolution;
+}
+
+/** History entry for version tracking */
+export interface VersionHistoryEntry {
+  id: string;
+  type: "upload" | "analysis" | "edit" | "generation";
+  timestamp: number;
+  description: string;
+  data?: GeneratedOutput | VisionStructOutput;
+}
+
+/** State for the generation feature */
+export interface GenerationState {
+  status: GenerationStatus;
+  currentOutput: GeneratedOutput | null;
+  history: GeneratedOutput[];
+  error: string | null;
+  hasUserEdits: boolean;
+}
+

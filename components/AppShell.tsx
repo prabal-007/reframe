@@ -145,12 +145,17 @@ export function CanvasEmptyState({
    ========================================================================= */
 
 interface AIActivityBarProps {
-  status: "idle" | "processing" | "complete" | "error";
+  status: "idle" | "processing" | "rendering" | "complete" | "error";
   message?: string;
   onDismiss?: () => void;
+  /** Optional action button */
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
-export function AIActivityBar({ status, message, onDismiss }: AIActivityBarProps) {
+export function AIActivityBar({ status, message, onDismiss, action }: AIActivityBarProps) {
   if (status === "idle" && !message) return null;
 
   const statusConfig = {
@@ -168,6 +173,15 @@ export function AIActivityBar({ status, message, onDismiss }: AIActivityBarProps
         </svg>
       ),
       color: "text-[var(--ai-cyan)]",
+    },
+    rendering: {
+      bg: "bg-[var(--accent-soft)]",
+      icon: (
+        <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      color: "text-[var(--accent-primary)]",
     },
     complete: {
       bg: "bg-success-soft",
@@ -190,6 +204,7 @@ export function AIActivityBar({ status, message, onDismiss }: AIActivityBarProps
   };
 
   const config = statusConfig[status];
+  const isProcessing = status === "processing" || status === "rendering";
 
   return (
     <div className={`
@@ -205,9 +220,17 @@ export function AIActivityBar({ status, message, onDismiss }: AIActivityBarProps
         <span className={config.color}>{config.icon}</span>
       )}
       <span className={`text-sm font-medium ${config.color}`}>
-        {message || (status === "processing" ? "AI is analyzing..." : "")}
+        {message || (status === "processing" ? "AI is analyzing..." : status === "rendering" ? "Rendering reframed output..." : "")}
       </span>
-      {onDismiss && status !== "processing" && (
+      {action && !isProcessing && (
+        <button
+          onClick={action.onClick}
+          className="px-3 py-1 rounded-lg bg-[var(--bg-elevated)] text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors"
+        >
+          {action.label}
+        </button>
+      )}
+      {onDismiss && !isProcessing && (
         <button 
           onClick={onDismiss}
           className={`p-1 rounded hover:bg-[var(--bg-elevated)] ${config.color} opacity-60 hover:opacity-100`}

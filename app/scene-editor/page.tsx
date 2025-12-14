@@ -1,15 +1,34 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import AppShell, { CanvasSection, CanvasEmptyState, AIActivityBar } from "@/components/AppShell";
 import InspectorPanel, { InspectorField, InspectorValue, InspectorChips } from "@/components/InspectorPanel";
 import ImageUploader from "@/components/ImageUploader";
 import JsonViewer from "@/components/JsonViewer";
 import SceneEditor from "@/components/SceneEditor";
 import PromptOutput from "@/components/PromptOutput";
-import { VisionStructOutput, AnalysisStatus } from "@/lib/types";
+import GenerationPanel from "@/components/GenerationPanel";
+import OutputComparison from "@/components/OutputComparison";
+import VersionHistory from "@/components/VersionHistory";
+import { 
+  VisionStructOutput, 
+  AnalysisStatus, 
+  GenerationStatus, 
+  GeneratedOutput, 
+  GenerationResolution,
+  VersionHistoryEntry 
+} from "@/lib/types";
+import { 
+  renderReframedOutput, 
+  cacheGeneratedOutput, 
+  getCachedOutput,
+  addToVersionHistory,
+  createGenerationHistoryEntry,
+  linkToSource 
+} from "@/lib/generation";
 
 export default function SceneEditorPage() {
+  // Core state
   const [image, setImage] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("idle");
   const [sceneData, setSceneData] = useState<VisionStructOutput | null>(null);
@@ -17,12 +36,36 @@ export default function SceneEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Generation state - "Render Reframed Output"
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
+  const [generatedOutput, setGeneratedOutput] = useState<GeneratedOutput | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [hasUserEdits, setHasUserEdits] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<VersionHistoryEntry[]>([]);
+  
+  // Track original scene data to detect edits
+  const originalSceneDataRef = useRef<string | null>(null);
+
   const handleImageSelect = useCallback(async (imageDataUrl: string) => {
     setImage(imageDataUrl);
     setSceneData(null);
     setGeneratedPrompt(null);
     setError(null);
     setAnalysisStatus("analyzing");
+    setHasUserEdits(false);
+    setGeneratedOutput(null);
+    setGenerationStatus("idle");
+    originalSceneDataRef.current = null;
+
+    // Add upload to history
+    const uploadEntry: VersionHistoryEntry = {
+      id: `upload_${Date.now()}`,
+      type: "upload",
+      timestamp: Date.now(),
+      description: "Image uploaded",
+    };
+    setVersionHistory(prev => [uploadEntry, ...prev]);
+    addToVersionHistory(uploadEntry);
 
     try {
       const response = await fetch("/api/analyze", {
@@ -39,6 +82,19 @@ export default function SceneEditorPage() {
 
       setSceneData(data.sceneData);
       setAnalysisStatus("complete");
+      originalSceneDataRef.current = JSON.stringify(data.sceneData);
+
+      // Add analysis to history
+      const analysisEntry: VersionHistoryEntry = {
+        id: `analysis_${Date.now()}`,
+        type: "analysis",
+        timestamp: Date.now(),
+        description: "Scene analyzed",
+        data: data.sceneData,
+      };
+      setVersionHistory(prev => [analysisEntry, ...prev]);
+      addToVersionHistory(analysisEntry);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
       setAnalysisStatus("error");
@@ -75,7 +131,95 @@ export default function SceneEditorPage() {
   const handleSceneDataChange = useCallback((newData: VisionStructOutput) => {
     setSceneData(newData);
     setGeneratedPrompt(null);
+    
+    // Check if user has made edits by comparing to original
+    if (originalSceneDataRef.current) {
+      const hasChanges = JSON.stringify(newData) !== originalSceneDataRef.current;
+      if (hasChanges && !hasUserEdits) {
+        setHasUserEdits(true);
+        // Add edit to history
+        const editEntry: VersionHistoryEntry = {
+          id: `edit_${Date.now()}`,
+          type: "edit",
+          timestamp: Date.now(),
+          description: "Scene modified",
+        };
+        setVersionHistory(prev => [editEntry, ...prev]);
+        addToVersionHistory(editEntry);
+      }
+    }
+  }, [hasUserEdits]);
+
+  // Handle "Render Reframed Output"
+  const handleRenderOutput = useCallback(async (options?: { resolution?: GenerationResolution }) => {
+    if (!sceneData || !generatedPrompt) {
+      // Generate prompt first if not exists
+      if (sceneData && !generatedPrompt) {
+        await handleGeneratePrompt();
+      }
+      return;
+    }
+
+    // Check cache first
+    const cached = getCachedOutput(sceneData, generatedPrompt);
+    if (cached) {
+      setGeneratedOutput(cached);
+      setGenerationStatus("complete");
+      return;
+    }
+
+    setGenerationStatus("generating");
+    setGenerationError(null);
+
+    const result = await renderReframedOutput(
+      sceneData,
+      generatedPrompt,
+      image || undefined,
+      options
+    );
+
+    if (result.success && result.output) {
+      // Link to source with full lineage
+      const linkedOutput = linkToSource(
+        result.output,
+        `source_${Date.now()}`,
+        sceneData
+      );
+
+      setGeneratedOutput(linkedOutput);
+      setGenerationStatus("complete");
+
+      // Cache the output
+      cacheGeneratedOutput(sceneData, generatedPrompt, linkedOutput);
+
+      // Add to history
+      const genEntry = createGenerationHistoryEntry(linkedOutput);
+      setVersionHistory(prev => [genEntry, ...prev]);
+      addToVersionHistory(genEntry);
+
+    } else {
+      setGenerationError(result.error || "Render failed");
+      setGenerationStatus("error");
+    }
+  }, [sceneData, generatedPrompt, image, handleGeneratePrompt]);
+
+  // Handle accepting the generated output
+  const handleAcceptOutput = useCallback(() => {
+    // Keep the output, could trigger download or save
+    setGenerationStatus("idle");
   }, []);
+
+  // Handle discarding the generated output
+  const handleDiscardOutput = useCallback(() => {
+    setGeneratedOutput(null);
+    setGenerationStatus("idle");
+  }, []);
+
+  // Handle regenerating
+  const handleRegenerate = useCallback(() => {
+    setGeneratedOutput(null);
+    handleRenderOutput();
+  }, [handleRenderOutput]);
 
   // Build inspector sections based on current state
   const inspectorSections = sceneData ? [
@@ -148,26 +292,57 @@ export default function SceneEditorPage() {
         <InspectorChips items={sceneData.objects.map(obj => obj.label)} />
       ),
     },
+    // Generation section in inspector
+    {
+      id: "synthesis",
+      title: "Synthesis",
+      defaultOpen: generationStatus !== "idle" || hasUserEdits,
+      children: (
+        <GenerationPanel
+          hasUserEdits={hasUserEdits}
+          hasSceneData={!!sceneData}
+          status={generationStatus}
+          error={generationError}
+          onRender={handleRenderOutput}
+          onDismissError={() => setGenerationError(null)}
+        />
+      ),
+    },
+    // Version history section
+    {
+      id: "history",
+      title: "History",
+      children: (
+        <VersionHistory
+          entries={versionHistory}
+          onClear={() => setVersionHistory([])}
+        />
+      ),
+    },
   ] : [];
 
   // Determine AI activity status
-  const aiStatus = analysisStatus === "analyzing" || isGenerating 
+  const aiStatus = analysisStatus === "analyzing" || isGenerating || generationStatus === "generating"
     ? "processing" 
-    : error 
+    : error || generationError
       ? "error" 
-      : analysisStatus === "complete" 
+      : analysisStatus === "complete" || generationStatus === "complete"
         ? "complete" 
         : "idle";
 
-  const aiMessage = error 
-    ? error 
+  const aiMessage = error || generationError
+    ? error || generationError
     : analysisStatus === "analyzing" 
       ? "Analyzing scene..." 
       : isGenerating 
         ? "Generating prompt..." 
-        : analysisStatus === "complete" 
-          ? "Analysis complete" 
-          : undefined;
+        : generationStatus === "generating"
+          ? "Rendering reframed output..."
+          : generationStatus === "complete"
+            ? "Output ready for comparison"
+            : analysisStatus === "complete" 
+              ? "Analysis complete" 
+              : undefined;
 
   return (
     <AppShell
@@ -184,7 +359,7 @@ export default function SceneEditorPage() {
       {/* Visual Canvas Content */}
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Error Banner */}
-        {error && (
+        {(error || generationError) && (
           <div className="
             p-4 rounded-xl 
             bg-error-soft border border-[var(--error)]/20 
@@ -195,15 +370,37 @@ export default function SceneEditorPage() {
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-sm">{error}</span>
+            <span className="text-sm">{error || generationError}</span>
             <button 
-              onClick={() => setError(null)}
+              onClick={() => {
+                setError(null);
+                setGenerationError(null);
+              }}
               className="ml-auto text-[var(--error)]/60 hover:text-[var(--error)] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        )}
+
+        {/* Output Comparison - Shows when generation is complete */}
+        {generatedOutput && image && (
+          <div className="animate-fade-in">
+            <CanvasSection
+              title="Output Comparison"
+              subtitle="Compare original with reframed result"
+            >
+              <OutputComparison
+                sourceImage={image}
+                generatedOutput={generatedOutput}
+                sceneData={sceneData || undefined}
+                onAccept={handleAcceptOutput}
+                onDiscard={handleDiscardOutput}
+                onRegenerate={handleRegenerate}
+              />
+            </CanvasSection>
           </div>
         )}
 
@@ -227,6 +424,16 @@ export default function SceneEditorPage() {
                 <JsonViewer data={sceneData} />
               </div>
             )}
+
+            {/* Prompt Output */}
+            <CanvasSection>
+                  <PromptOutput
+                    prompt={generatedPrompt}
+                    isGenerating={isGenerating}
+                    onGenerate={handleGeneratePrompt}
+                    hasSceneData={!!sceneData}
+                  />
+                </CanvasSection>
           </div>
 
           {/* Right Column - Editor & Output */}
@@ -244,14 +451,31 @@ export default function SceneEditorPage() {
                 </CanvasSection>
 
                 {/* Prompt Output */}
-                <CanvasSection>
+                {/* <CanvasSection>
                   <PromptOutput
                     prompt={generatedPrompt}
                     isGenerating={isGenerating}
                     onGenerate={handleGeneratePrompt}
                     hasSceneData={!!sceneData}
                   />
-                </CanvasSection>
+                </CanvasSection> */}
+
+                {/* Inline Generation Panel (alternative placement) */}
+                {!generatedOutput && (
+                  <CanvasSection
+                    title="Render Output"
+                    subtitle="Synthesize from scene understanding"
+                  >
+                    <GenerationPanel
+                      hasUserEdits={hasUserEdits}
+                      hasSceneData={!!sceneData}
+                      status={generationStatus}
+                      error={generationError}
+                      onRender={handleRenderOutput}
+                      onDismissError={() => setGenerationError(null)}
+                    />
+                  </CanvasSection>
+                )}
               </>
             ) : (
               <CanvasEmptyState
@@ -271,10 +495,13 @@ export default function SceneEditorPage() {
       {/* AI Activity Bar */}
       <AIActivityBar 
         status={aiStatus}
-        message={aiMessage}
-        onDismiss={aiStatus === "complete" || aiStatus === "error" ? () => setError(null) : undefined}
+        message={aiMessage ?? undefined}
+        onDismiss={() => {
+          setError(null);
+          setGenerationError(null);
+        }}
+        autoClose={(aiStatus === "complete" || aiStatus === "error") ? 4000 : undefined}
       />
     </AppShell>
   );
 }
-

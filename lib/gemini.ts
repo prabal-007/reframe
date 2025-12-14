@@ -12,6 +12,15 @@ export const getTextModel = () => {
   return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 };
 
+// Get Gemini model for image generation
+// Using gemini-2.0-flash-exp which supports native image generation
+// See: https://developers.googleblog.com/experiment-with-gemini-20-flash-native-image-generation/
+export const getImageGenerationModel = () => {
+  return genAI.getGenerativeModel({ 
+    model: process.env.GEMINI_GENERATION_MODEL || "gemini-2.0-flash-exp",
+  });
+};
+
 // Convert base64 image to Gemini-compatible format
 export const createImagePart = (base64Data: string, mimeType: string) => {
   // Remove data URL prefix if present
