@@ -11,30 +11,23 @@ type WorkflowStep = {
   screenshot?: string;
 };
 
-type Screenshot = {
-  title: string;
-  src: string;
-  alt: string;
-  hint: string;
-  href?: string;
-};
 
 const workflow: WorkflowStep[] = [
   {
     title: "Understand",
-    caption: "Reframe understands objects, lighting, and mood.",
+    caption: "Objects, lighting, mood — extracted instantly.",
     visual: "Scene canvas with highlights",
-    screenshot: "/screenshots/scene-editor.png",
+    screenshot: "/screenshots/main.png",
   },
   {
     title: "Reframe",
-    caption: "Edit intent, not pixels. Adjust attributes with precision.",
+    caption: "Edit intent, not pixels.",
     visual: "Inspector edits in place",
-    screenshot: "/screenshots/scene-inspector.png",
+    screenshot: "/screenshots/main-edit.png",
   },
   {
     title: "Apply",
-    caption: "One image. Many outcomes — prompts, variants, accessibility.",
+    caption: "One image. Many outcomes.",
     visual: "Variants and exports",
     screenshot: "/screenshots/products.png",
   },
@@ -61,94 +54,33 @@ const capabilities = [
 
 const personas = ["Creators and designers", "E-commerce teams", "Visual content leads"];
 
-const liveScreenshots: Screenshot[] = [
-  {
-    title: "Scene Editor",
-    src: "/screenshots/scene-editor.png",
-    alt: "Scene Editor live UI",
-    hint: "Image → JSON blueprint → prompts",
-    href: "/",
-  },
-  {
-    title: "Accessibility",
-    src: "/screenshots/accessibility.png",
-    alt: "Accessibility live UI",
-    hint: "Alt text and audio in one pass",
-    href: "/accessibility",
-  },
-  {
-    title: "Product Variants",
-    src: "/screenshots/products.png",
-    alt: "Products live UI",
-    hint: "Color + material + background variations",
-    href: "/products",
-  },
-  {
-    title: "Catalog",
-    src: "/screenshots/catalog.png",
-    alt: "Catalog live UI",
-    hint: "Visual spreadsheet of tagged images",
-    href: "/catalog",
-  },
-];
 
-function ScreenshotCard({ shot }: { shot: Screenshot }) {
-  const [errored, setErrored] = useState(false);
-  return (
-    <Link
-      href={shot.href || "#"}
-      className="group block rounded-2xl border border-zinc-800 bg-zinc-950/80 overflow-hidden hover:border-indigo-500/40 transition"
-    >
-      <div className="relative aspect-[16/10] bg-zinc-900">
-        {!errored ? (
-          <Image
-            src={shot.src}
-            alt={shot.alt}
-            fill
-            className="object-cover"
-            priority={shot.title === "Scene Editor"}
-            sizes="(max-width: 768px) 100vw, 50vw"
-            onError={() => setErrored(true)}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500">
-            Add {shot.src} to /public to show live UI
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition" />
-      </div>
-      <div className="p-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-zinc-100">{shot.title}</p>
-          <p className="text-xs text-zinc-500">{shot.hint}</p>
-        </div>
-        <span className="text-xs text-indigo-300 group-hover:text-indigo-200">View</span>
-      </div>
-    </Link>
-  );
-}
 
 function WorkflowCard({ step }: { step: WorkflowStep }) {
   const [errored, setErrored] = useState(false);
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-6 space-y-4">
+    <Link 
+      href="/scene-editor"
+      className="group rounded-2xl border border-zinc-800 bg-zinc-950/70 p-6 space-y-4 block hover:border-indigo-500/40 transition"
+    >
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-200 flex items-center justify-center">
           •
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-sm uppercase tracking-wide text-zinc-500">{step.title}</p>
           <p className="text-sm text-zinc-300">{step.caption}</p>
         </div>
+        <span className="text-xs text-indigo-300/60 group-hover:text-indigo-300 transition">→</span>
       </div>
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 text-sm text-zinc-500 relative aspect-[4/3]">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 text-sm text-zinc-500 relative aspect-[4/3] overflow-hidden">
         {step.screenshot && !errored ? (
           <>
             <Image
               src={step.screenshot}
               alt={step.caption}
               fill
-              className="object-cover rounded-lg"
+              className="object-contain rounded-lg transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, 33vw"
               onError={() => setErrored(true)}
             />
@@ -160,7 +92,7 @@ function WorkflowCard({ step }: { step: WorkflowStep }) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -188,47 +120,29 @@ export default function LandingPage() {
             </p>
             <div className="flex items-center gap-3">
               <Link
-                href="/"
+                href="/scene-editor"
                 className="px-5 py-3 rounded-xl bg-indigo-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 transition"
               >
                 Open Reframe
               </Link>
-              <Link
-                href="/remix"
-                className="px-5 py-3 rounded-xl border border-zinc-700 text-sm font-medium text-zinc-200 hover:border-zinc-500 transition"
-              >
-                View demo
-              </Link>
             </div>
 
             {/* Hero Visual - live screenshot */}
-            <div className="mt-10 w-full">
-              <div className="relative rounded-2xl border border-zinc-800/80 bg-gradient-to-br from-[#0f1420] to-[#0b0d13] shadow-2xl overflow-hidden">
+            <Link href="/scene-editor" className="mt-10 w-full block group">
+              <div className="relative rounded-2xl border border-zinc-800/80 bg-gradient-to-br from-[#0f1420] to-[#0b0d13] shadow-2xl overflow-hidden hover:border-indigo-500/40 transition">
                 <div className="relative aspect-[16/9]">
-                  <ScreenshotCard
-                    shot={{
-                      title: "Scene Editor",
-                      src: "/screenshots/scene-editor.png",
-                      alt: "Scene Editor live UI",
-                      hint: "Canvas + Inspector",
-                      href: "/",
-                    }}
+                  <Image
+                    src="/screenshots/scene-editor.png"
+                    alt="Reframe Scene Editor"
+                    fill
+                    className="object-contain transition-transform duration-300"
+                    priority
+                    sizes="(max-width: 768px) 100vw, 80vw"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition" />
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* What Reframe Does */}
-      <section className="px-6 py-16 border-t border-zinc-900/60 bg-[#06070c]">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <h2 className="text-2xl font-semibold tracking-tight">What Reframe does</h2>
-          <div className="space-y-3 text-zinc-400 text-lg">
-            <p>Reframe looks at an image the way a human would — understanding its scene, structure, and intent.</p>
-            <p>Then it helps you transform it with precision.</p>
-            <p>One canvas, multiple intelligent outcomes.</p>
+            </Link>
           </div>
         </div>
       </section>
@@ -288,35 +202,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Live product captures */}
-      <section className="px-6 py-16 border-t border-zinc-900/60">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="text-center space-y-2">
-            <h3 className="text-xl font-semibold">Live from the product</h3>
-            <p className="text-sm text-zinc-500">
-              These tiles load straight from /public/screenshots. Drop fresh captures there to keep this page current.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {liveScreenshots.map((shot) => (
-              <ScreenshotCard key={shot.title} shot={shot} />
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Closing CTA */}
       <section className="px-6 py-16 border-t border-zinc-900/60">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <h3 className="text-2xl font-semibold">Start with one image.</h3>
-          <div className="flex items-center justify-center gap-3">
-            <Link
-              href="/"
-              className="px-5 py-3 rounded-xl bg-indigo-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 transition"
-            >
-              Open Reframe
-            </Link>
-          </div>
+          <Link
+            href="/scene-editor"
+            className="inline-block px-5 py-3 rounded-xl bg-indigo-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 transition"
+          >
+            Open Reframe
+          </Link>
         </div>
       </section>
 

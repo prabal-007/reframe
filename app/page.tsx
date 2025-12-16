@@ -24,13 +24,14 @@ const workflow: WorkflowStep[] = [
     title: "Understand",
     caption: "Reframe understands objects, lighting, and mood.",
     visual: "Scene canvas with highlights",
-    screenshot: "/screenshots/scene-editor.png",
+    screenshot: "/screenshots/stag0.png",
   },
   {
     title: "Reframe",
     caption: "Edit intent, not pixels. Adjust attributes with precision.",
     visual: "Inspector edits in place",
-    screenshot: "/screenshots/scene-inspector.png",
+    // screenshot: "/screenshots/scene-inspector.png",
+    screenshot: "/screenshots/stag2.png",
   },
   {
     title: "Apply",
@@ -294,7 +295,7 @@ export default function LandingPage() {
           <div className="text-center space-y-2">
             <h3 className="text-xl font-semibold">Live from the product</h3>
             <p className="text-sm text-zinc-500">
-              These tiles load straight from /public/screenshots. Drop fresh captures there to keep this page current.
+              {/* These tiles load straight from /public/screenshots. Drop fresh captures there to keep this page current. */}
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">

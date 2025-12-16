@@ -402,20 +402,20 @@ export default function SceneEditor({ data, onChange, originalData, isRendering 
   return (
     <div className="space-y-8">
       {/* Atmosphere Section - Always open */}
+      <TextInput
+        label="Scene Description"
+        value={data.global_context.scene_description}
+        onChange={(v) => updateGlobalContext("scene_description", v)}
+        multiline
+        isModified={modifiedFields.has('scene_description')}
+        isHighlighted={highlightedSections.has('atmosphere')}
+      />
       <Section 
         title="Atmosphere" 
         defaultOpen={true}
         modifiedCount={atmosphereModCount}
         isHighlighted={highlightedSections.has('atmosphere')}
       >
-        <TextInput
-          label="Scene Description"
-          value={data.global_context.scene_description}
-          onChange={(v) => updateGlobalContext("scene_description", v)}
-          multiline
-          isModified={modifiedFields.has('scene_description')}
-          isHighlighted={highlightedSections.has('atmosphere')}
-        />
         <div className="grid grid-cols-2 gap-4">
           <TextInput
             label="Time of Day"
