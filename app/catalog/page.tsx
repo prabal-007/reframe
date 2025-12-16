@@ -127,7 +127,7 @@ export default function CatalogPage() {
         <div className="space-y-3">
           <InspectorField label="Dominant">
             <div className="flex gap-1">
-              {selectedEntry.metadata.colors.dominant.slice(0, 5).map((color, i) => (
+              {selectedEntry.metadata.visual_elements.dominant_colors.slice(0, 5).map((color, i) => (
                 <div 
                   key={i}
                   className="w-6 h-6 rounded border border-[var(--glass-border)]"
@@ -152,7 +152,7 @@ export default function CatalogPage() {
             <InspectorValue value={selectedEntry.metadata.context.time_of_day || "Unknown"} />
           </InspectorField>
           <InspectorField label="Mood">
-            <InspectorValue value={selectedEntry.metadata.context.mood || "Neutral"} />
+            <InspectorValue value={selectedEntry.metadata.mood_atmosphere.primary_mood || "Neutral"} />
           </InspectorField>
         </div>
       ),

@@ -47,12 +47,14 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await model.generateContent({
-      contents: [{ role: "user", parts: contentParts.map(part => 
-        typeof part === "string" ? { text: part } : part
-      )}],
-      generationConfig: {
-        responseModalities: ["image", "text"],
-      },
+      contents: [
+        {
+          role: "user",
+          parts: contentParts.map((part) =>
+            typeof part === "string" ? { text: part } : part
+          ),
+        },
+      ],
     });
 
     const response = result.response;

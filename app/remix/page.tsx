@@ -97,14 +97,14 @@ export default function RemixPage() {
       ),
       children: (
         <div className="space-y-3">
-          <InspectorField label="Art Movement">
-            <InspectorValue value={visualDNA.style.art_movement || "Contemporary"} />
+          <InspectorField label="Primary Style">
+            <InspectorValue value={visualDNA.visual_dna.style_mood.primary_style || "Contemporary"} />
           </InspectorField>
-          <InspectorField label="Era">
-            <InspectorValue value={visualDNA.style.era || "Modern"} />
+          <InspectorField label="Era Influence">
+            <InspectorValue value={visualDNA.visual_dna.style_mood.era_influence || "Modern"} />
           </InspectorField>
-          <InspectorField label="Influences">
-            <InspectorChips items={visualDNA.style.influences || []} />
+          <InspectorField label="Descriptors">
+            <InspectorChips items={visualDNA.visual_dna.style_mood.descriptors || []} />
           </InspectorField>
         </div>
       ),
@@ -119,26 +119,26 @@ export default function RemixPage() {
       ),
       children: (
         <div className="space-y-3">
-          <InspectorField label="Primary Emotion">
-            <InspectorValue value={visualDNA.mood.primary_emotion} />
+          <InspectorField label="Mood">
+            <InspectorValue value={visualDNA.visual_dna.style_mood.mood} />
           </InspectorField>
-          <InspectorField label="Intensity">
+          <InspectorField label="Contrast">
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-[var(--accent-primary)] rounded-full transition-all"
                   style={{ 
-                    width: visualDNA.mood.intensity === "high" ? "100%" 
-                         : visualDNA.mood.intensity === "medium" ? "60%" 
+                    width: visualDNA.visual_dna.color_theory.contrast === "High" ? "100%" 
+                         : visualDNA.visual_dna.color_theory.contrast === "Medium" ? "60%" 
                          : "30%" 
                   }}
                 />
               </div>
-              <span className="text-xs text-[var(--text-muted)] capitalize">{visualDNA.mood.intensity}</span>
+              <span className="text-xs text-[var(--text-muted)] capitalize">{visualDNA.visual_dna.color_theory.contrast.toLowerCase()}</span>
             </div>
           </InspectorField>
           <InspectorField label="Descriptors">
-            <InspectorChips items={visualDNA.mood.descriptors || []} />
+            <InspectorChips items={visualDNA.visual_dna.style_mood.descriptors || []} />
           </InspectorField>
         </div>
       ),
@@ -150,7 +150,7 @@ export default function RemixPage() {
         <div className="space-y-3">
           <InspectorField label="Palette">
             <div className="flex gap-1">
-              {visualDNA.colors.palette.slice(0, 5).map((color, i) => (
+              {visualDNA.visual_dna.color_theory.dominant_colors.slice(0, 5).map((color, i) => (
                 <div 
                   key={i}
                   className="w-6 h-6 rounded border border-[var(--glass-border)]"
@@ -161,10 +161,10 @@ export default function RemixPage() {
             </div>
           </InspectorField>
           <InspectorField label="Harmony">
-            <InspectorValue value={visualDNA.colors.harmony || "Complementary"} />
+            <InspectorValue value={visualDNA.visual_dna.color_theory.palette_type || "Complementary"} />
           </InspectorField>
           <InspectorField label="Temperature">
-            <InspectorValue value={visualDNA.colors.temperature || "Neutral"} />
+            <InspectorValue value={visualDNA.visual_dna.color_theory.temperature || "Neutral"} />
           </InspectorField>
         </div>
       ),
@@ -174,11 +174,11 @@ export default function RemixPage() {
       title: "Composition",
       children: (
         <div className="space-y-3">
-          <InspectorField label="Structure">
-            <InspectorValue value={visualDNA.composition?.structure || "Balanced"} />
+          <InspectorField label="Layout">
+            <InspectorValue value={visualDNA.visual_dna.composition.layout || "Balanced"} />
           </InspectorField>
-          <InspectorField label="Flow">
-            <InspectorValue value={visualDNA.composition?.flow || "Dynamic"} />
+          <InspectorField label="Balance">
+            <InspectorValue value={visualDNA.visual_dna.composition.balance || "Dynamic"} />
           </InspectorField>
         </div>
       ),
